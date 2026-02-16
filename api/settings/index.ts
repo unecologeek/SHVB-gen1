@@ -9,7 +9,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       const rows = await sql`SELECT * FROM settings WHERE id = 1`;
       const row = rows[0];
       if (!row) {
-        return res.status(404).json({ error: 'Settings not found', code: 'NOT_FOUND' });
+        res.status(404).json({ error: 'Settings not found', code: 'NOT_FOUND' });
+        return;
       }
       const r = row as Record<string, unknown>;
       const data = {
@@ -25,7 +26,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         match_date: r.match_date,
         location: r.location,
       };
-      return jsonResponse(res, 200, { data });
+      jsonResponse(res, 200, { data });
+      return;
     }
 
     if (req.method === 'PATCH') {
@@ -68,7 +70,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         match_date: row.match_date,
         location: row.location,
       };
-      return jsonResponse(res, 200, { data });
+      jsonResponse(res, 200, { data });
+      return;
     }
 
     res.status(405).json({ error: 'Method not allowed', code: 'METHOD' });

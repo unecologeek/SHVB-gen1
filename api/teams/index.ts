@@ -13,14 +13,16 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         logo: r.logo ?? '',
         is_local: Boolean(r.is_local),
       }));
-      return jsonResponse(res, 200, { data });
+      jsonResponse(res, 200, { data });
+      return;
     }
 
     if (req.method === 'POST') {
       const body = req.body as { name?: string; logo?: string; is_local?: boolean };
       const name = typeof body?.name === 'string' ? body.name.trim() : '';
       if (!name) {
-        return jsonResponse(res, 400, { error: 'name is required', code: 'VALIDATION' });
+        jsonResponse(res, 400, { error: 'name is required', code: 'VALIDATION' });
+        return;
       }
       const logo = typeof body?.logo === 'string' ? body.logo : '';
       const is_local = Boolean(body?.is_local);
@@ -37,7 +39,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         logo: (row as { logo: string }).logo ?? '',
         is_local: Boolean((row as { is_local: boolean }).is_local),
       };
-      return jsonResponse(res, 201, { data });
+      jsonResponse(res, 201, { data });
+      return;
     }
 
     res.status(405).json({ error: 'Method not allowed', code: 'METHOD' });

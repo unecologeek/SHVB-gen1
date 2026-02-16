@@ -5,12 +5,14 @@ import { getSql } from '../_lib/db';
 export default function handler(req: VercelRequest, res: VercelResponse) {
   withCors(req, res, async () => {
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed', code: 'METHOD' });
+      res.status(405).json({ error: 'Method not allowed', code: 'METHOD' });
+      return;
     }
     const body = req.body as { id?: string };
     const id = typeof body?.id === 'string' ? body.id.trim() : '';
     if (!id) {
-      return jsonResponse(res, 400, { error: 'id is required', code: 'VALIDATION' });
+      jsonResponse(res, 400, { error: 'id is required', code: 'VALIDATION' });
+      return;
     }
 
     const sql = getSql();
@@ -20,7 +22,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       RETURNING id, name, logo, is_local
     `;
     if (rows.length === 0) {
-      return jsonResponse(res, 404, { error: 'Team not found', code: 'NOT_FOUND' });
+      jsonResponse(res, 404, { error: 'Team not found', code: 'NOT_FOUND' });
+      return;
     }
     res.status(204).end();
   });
