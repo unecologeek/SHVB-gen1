@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withCors, jsonResponse } from '../../lib/vercel-api/cors';
-import { getSql } from '../../lib/vercel-api/db';
+import { getSql, type TeamRow } from '../../lib/vercel-api/db';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   return withCors(req, res, async () => {
@@ -12,8 +12,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (req.method === 'GET') {
-        const rows = await sql`SELECT id, name, logo, is_local FROM teams ORDER BY name`;
-        const data = rows.map((r: { id: string; name: string; logo: string; is_local: boolean }) => ({
+        const rows = (await sql`SELECT id, name, logo, is_local FROM teams ORDER BY name`) as TeamRow[];
+        const data = rows.map((r) => ({
           id: String(r.id),
           name: r.name,
           logo: r.logo ?? '',
@@ -33,16 +33,17 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         const logo = typeof body?.logo === 'string' ? body.logo : '';
         const is_local = Boolean(body?.is_local);
 
-        const [row] = await sql`
+        const insertResult = (await sql`
           INSERT INTO teams (name, logo, is_local)
           VALUES (${name}, ${logo}, ${is_local})
           RETURNING id, name, logo, is_local
-        `;
+        `) as TeamRow[];
+        const row = insertResult[0];
         const data = {
-          id: String((row as { id: string }).id),
-          name: (row as { name: string }).name,
-          logo: (row as { logo: string }).logo ?? '',
-          is_local: Boolean((row as { is_local: boolean }).is_local),
+          id: String(row.id),
+          name: row.name,
+          logo: row.logo ?? '',
+          is_local: Boolean(row.is_local),
         };
         jsonResponse(res, 201, { data });
         return;

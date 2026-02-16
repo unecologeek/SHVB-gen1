@@ -12,7 +12,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (req.method === 'GET') {
-        const rows = await sql`SELECT * FROM settings WHERE id = 1`;
+        const rows = (await sql`SELECT * FROM settings WHERE id = 1`) as Record<string, unknown>[];
         const row = rows[0];
         if (!row) {
           res.status(404).json({ error: 'Settings not found', code: 'NOT_FOUND' });
@@ -38,8 +38,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
       if (req.method === 'PATCH') {
         const body = (req.body as Record<string, unknown>) ?? {};
-        let rows = await sql`SELECT * FROM settings WHERE id = 1`;
-        let row = rows[0] as Record<string, unknown> | undefined;
+        let rows = (await sql`SELECT * FROM settings WHERE id = 1`) as Record<string, unknown>[];
+        let row = rows[0];
         if (!row) {
           await sql`
             INSERT INTO settings (id, title, subtitle, results_bg, preview_bg, victory_bg, main_color, visual_type, category, match_date, location)
@@ -60,8 +60,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
             UPDATE settings SET title = ${title}, subtitle = ${subtitle}, results_bg = ${results_bg}, preview_bg = ${preview_bg}, victory_bg = ${victory_bg}, main_color = ${main_color}, visual_type = ${visual_type}, category = ${category}, match_date = ${match_date}, location = ${location}, updated_at = now() WHERE id = 1
           `;
         }
-        rows = await sql`SELECT id, title, subtitle, results_bg, preview_bg, victory_bg, main_color, visual_type, category, match_date, location FROM settings WHERE id = 1`;
-        row = rows[0] as Record<string, unknown>;
+        rows = (await sql`SELECT id, title, subtitle, results_bg, preview_bg, victory_bg, main_color, visual_type, category, match_date, location FROM settings WHERE id = 1`) as Record<string, unknown>[];
+        row = rows[0];
         const data = {
           id: row.id,
           title: row.title,
