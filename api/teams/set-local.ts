@@ -1,0 +1,27 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { withCors, jsonResponse } from '../_lib/cors';
+import { getSql } from '../_lib/db';
+
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  withCors(req, res, async () => {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed', code: 'METHOD' });
+    }
+    const body = req.body as { id?: string };
+    const id = typeof body?.id === 'string' ? body.id.trim() : '';
+    if (!id) {
+      return jsonResponse(res, 400, { error: 'id is required', code: 'VALIDATION' });
+    }
+
+    const sql = getSql();
+    await sql`UPDATE teams SET is_local = false WHERE is_local = true`;
+    const rows = await sql`
+      UPDATE teams SET is_local = true WHERE id = ${id}::uuid
+      RETURNING id, name, logo, is_local
+    `;
+    if (rows.length === 0) {
+      return jsonResponse(res, 404, { error: 'Team not found', code: 'NOT_FOUND' });
+    }
+    res.status(204).end();
+  });
+}

@@ -4,7 +4,11 @@ import { databases, APPWRITE_CONFIG, isAppwriteReady } from './appwrite';
 import { AppConfig } from '../types';
 import { isCORSError } from './retry';
 
-export type DatabaseSource = 'APPWRITE' | 'SUPABASE';
+export type DatabaseSource = 'NEON' | 'APPWRITE' | 'SUPABASE';
+
+function getApiBase(): string {
+  return (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || '';
+}
 
 export interface TeamData {
   id?: string;
@@ -497,10 +501,93 @@ export class SupabaseAdapter implements DatabaseAdapter {
 }
 
 /**
+ * Adapter pour Neon (API Vercel)
+ */
+export class NeonAdapter implements DatabaseAdapter {
+  source: DatabaseSource = 'NEON';
+
+  private api(path: string, options?: RequestInit): Promise<Response> {
+    const base = getApiBase();
+    return fetch(`${base}/api${path}`, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+    });
+  }
+
+  async getTeams(): Promise<TeamData[]> {
+    const res = await this.api('/teams');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { error?: string; code?: string };
+      throw { message: err.error || res.statusText, code: err.code || res.status };
+    }
+    const json = (await res.json()) as { data: TeamData[] };
+    return (json.data || []).map(t => ({ id: t.id, name: t.name, logo: t.logo ?? '', is_local: Boolean(t.is_local) }));
+  }
+
+  async createTeam(team: Omit<TeamData, 'id'>): Promise<TeamData> {
+    const res = await this.api('/teams', { method: 'POST', body: JSON.stringify({ name: team.name, logo: team.logo ?? '', is_local: team.is_local ?? false }) });
+    const json = (await res.json()) as { data?: TeamData; error?: string; code?: string };
+    if (!res.ok) throw { message: json.error || res.statusText, code: json.code || res.status };
+    const d = json.data!;
+    return { id: d.id, name: d.name, logo: d.logo ?? '', is_local: Boolean(d.is_local) };
+  }
+
+  async updateTeam(id: string, team: Partial<TeamData>): Promise<TeamData> {
+    const res = await this.api(`/teams/${id}`, { method: 'PATCH', body: JSON.stringify(team) });
+    const json = (await res.json()) as { data?: TeamData; error?: string; code?: string };
+    if (!res.ok) throw { message: json.error || res.statusText, code: json.code || res.status };
+    const d = json.data!;
+    return { id: d.id, name: d.name, logo: d.logo ?? '', is_local: Boolean(d.is_local) };
+  }
+
+  async deleteTeam(id: string): Promise<void> {
+    const res = await this.api(`/teams/${id}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 204) {
+      const json = (await res.json()).catch(() => ({})) as { error?: string; code?: string };
+      throw { message: json.error || res.statusText, code: json.code || res.status };
+    }
+  }
+
+  async setLocalTeam(id: string): Promise<void> {
+    const res = await this.api('/teams/set-local', { method: 'POST', body: JSON.stringify({ id }) });
+    if (!res.ok && res.status !== 204) {
+      const json = (await res.json()).catch(() => ({})) as { error?: string; code?: string };
+      throw { message: json.error || res.statusText, code: json.code || res.status };
+    }
+  }
+
+  async getSettings(): Promise<SettingsData | null> {
+    const res = await this.api('/settings');
+    if (res.status === 404) return null;
+    const json = (await res.json()) as { data?: SettingsData; error?: string };
+    if (!res.ok) throw { message: json.error || res.statusText, code: res.status };
+    return json.data ?? null;
+  }
+
+  async updateSettings(settings: Partial<SettingsData>): Promise<SettingsData> {
+    const res = await this.api('/settings', { method: 'PATCH', body: JSON.stringify(settings) });
+    const json = (await res.json()) as { data?: SettingsData; error?: string };
+    if (!res.ok) throw { message: json.error || res.statusText, code: res.status };
+    return json.data!;
+  }
+
+  async healthCheck(): Promise<boolean> {
+    try {
+      const res = await this.api('/teams');
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
  * Factory pour créer l'adapter approprié
  */
 export const createDatabaseAdapter = (source: DatabaseSource): DatabaseAdapter => {
   switch (source) {
+    case 'NEON':
+      return new NeonAdapter();
     case 'APPWRITE':
       return new AppwriteAdapter();
     case 'SUPABASE':

@@ -112,3 +112,20 @@ export const tryConnectSupabase = async (
     adapter: result.adapter
   };
 };
+
+/**
+ * Tente de se connecter à Neon (API) et charger les données
+ */
+export const tryConnectNeon = async (
+  defaultConfig: AppConfig
+): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
+  const result = await loadSettingsFromSource('NEON', defaultConfig);
+  if (!result) return null;
+
+  const teams = await loadTeamsFromSource(result.adapter);
+  return {
+    config: result.config,
+    teams,
+    adapter: result.adapter
+  };
+};

@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AppConfig, Match, VisualType } from '../types';
+import { AppConfig, Match, VisualType, ConnectionSource } from '../types';
+import { DB_SOURCE } from '../types';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from '../lib/appwrite';
 import { supabase } from '../lib/supabase';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';
@@ -87,9 +88,10 @@ interface Props {
   availableTeams: TeamData[];
   victoryPhoto: string;
   setVictoryPhoto: (val: string) => void;
+  activeSource: ConnectionSource;
 }
 
-const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, availableTeams, victoryPhoto, setVictoryPhoto }) => {
+const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, availableTeams, victoryPhoto, setVictoryPhoto, activeSource }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const cache = useLocalCache();
@@ -202,8 +204,20 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
       }
     };
 
+    const syncNeon = async () => {
+      if (activeSource !== DB_SOURCE.NEON) return;
+      try {
+        const apiBase = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) || '';
+        const res = await fetch(`${apiBase}/api/settings`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error(await res.text());
+        console.log("📤 [NEON] Synchronisation réussie.");
+      } catch (e: any) {
+        console.error("⚠️ [NEON] Échec synchronisation:", { message: e?.message });
+      }
+    };
+
     // On lance les syncos en parallèle sans bloquer l'UI
-    Promise.all([syncAppwrite(), syncSupabase()]).finally(() => {
+    Promise.all([syncNeon(), syncAppwrite(), syncSupabase()]).finally(() => {
       setTimeout(() => setSaving(false), 600);
     });
   };
