@@ -8,7 +8,7 @@ export const APPWRITE_CONFIG = {
   ENDPOINT: import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://fra.cloud.appwrite.io/v1',
   PROJECT_ID: import.meta.env.VITE_APPWRITE_PROJECT_ID || '',
   API_KEY: import.meta.env.VITE_APPWRITE_API_KEY || '',
-  DATABASE_ID: import.meta.env.VITE_APPWRITE_DATABASE_ID || 'main',
+  DATABASE_ID: import.meta.env.VITE_APPWRITE_DATABASE_ID || 'SHVBdb',
   COLLECTION_TEAMS: import.meta.env.VITE_APPWRITE_COLLECTION_TEAMS || 'teams',
   COLLECTION_SETTINGS: import.meta.env.VITE_APPWRITE_COLLECTION_SETTINGS || 'settings'
 };
