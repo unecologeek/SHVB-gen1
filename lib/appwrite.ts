@@ -2,8 +2,8 @@
 import { Client, Databases, Account } from 'appwrite';
 
 // Configuration via variables d'environnement
-// Note: Pour l'authentification utilisateur, utilisez Account API au lieu de la clé API
-// La clé API est utilisée pour les opérations serveur/admin, l'authentification utilisateur pour les opérations client
+// Endpoint et Project ID suffisent pour l'accès client (selon les permissions des collections).
+// La clé API est optionnelle, pour un usage serveur/admin.
 export const APPWRITE_CONFIG = {
   ENDPOINT: import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://fra.cloud.appwrite.io/v1',
   PROJECT_ID: import.meta.env.VITE_APPWRITE_PROJECT_ID || '',
@@ -18,13 +18,10 @@ const client = new Client()
   .setEndpoint(APPWRITE_CONFIG.ENDPOINT)
   .setProject(APPWRITE_CONFIG.PROJECT_ID);
 
-// Ajouter la clé API si elle est fournie (pour les opérations serveur/admin)
-// Si aucune clé API n'est fournie, les opérations nécessiteront une authentification utilisateur
+// Ajouter la clé API si elle est fournie (optionnel, pour usage serveur/admin)
 if (APPWRITE_CONFIG.API_KEY) {
   client.setKey(APPWRITE_CONFIG.API_KEY);
   console.log('✅ Clé API Appwrite configurée');
-} else {
-  console.warn('⚠️ Aucune clé API Appwrite fournie. Les opérations nécessiteront une authentification utilisateur.');
 }
 
 export const databases = new Databases(client);
@@ -38,11 +35,6 @@ export const isAppwriteReady = () => {
     console.warn('⚠️ Configuration Appwrite incomplète. Vérifiez votre fichier .env.local');
     return false;
   }
-  
-  // Avertir si aucune méthode d'authentification n'est configurée
-  if (!APPWRITE_CONFIG.API_KEY) {
-    console.warn('⚠️ Aucune clé API Appwrite configurée. Assurez-vous que les permissions de collection permettent l\'accès anonyme ou configurez l\'authentification utilisateur.');
-  }
-  
+
   return true;
 };
