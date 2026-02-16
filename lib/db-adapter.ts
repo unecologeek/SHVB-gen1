@@ -291,9 +291,14 @@ export class AppwriteAdapter implements DatabaseAdapter {
 export class SupabaseAdapter implements DatabaseAdapter {
   source: DatabaseSource = 'SUPABASE';
 
+  private guard() {
+    if (!supabase) throw new Error('Supabase non configuré (variables d\'environnement manquantes)');
+  }
+
   async getTeams(): Promise<TeamData[]> {
+    this.guard();
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('teams')
         .select('*')
         .order('name');
@@ -316,8 +321,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async createTeam(team: Omit<TeamData, 'id'>): Promise<TeamData> {
+    this.guard();
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('teams')
         .insert({
           name: team.name,
@@ -345,13 +351,14 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async updateTeam(id: string, team: Partial<TeamData>): Promise<TeamData> {
+    this.guard();
     try {
       const updateData: any = {};
       if (team.name !== undefined) updateData.name = team.name;
       if (team.logo !== undefined) updateData.logo = team.logo;
       if (team.is_local !== undefined) updateData.is_local = team.is_local;
 
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('teams')
         .update(updateData)
         .eq('id', id)
@@ -376,8 +383,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async deleteTeam(id: string): Promise<void> {
+    this.guard();
     try {
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('teams')
         .delete()
         .eq('id', id);
@@ -393,9 +401,10 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async setLocalTeam(id: string): Promise<void> {
+    this.guard();
     try {
       // D'abord, réinitialiser toutes les équipes
-      const { error: resetError } = await supabase
+      const { error: resetError } = await supabase!
         .from('teams')
         .update({ is_local: false })
         .not('id', 'is', null);
@@ -406,7 +415,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
       }
 
       // Ensuite, définir la nouvelle équipe locale
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabase!
         .from('teams')
         .update({ is_local: true })
         .eq('id', id);
@@ -422,8 +431,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async getSettings(): Promise<SettingsData | null> {
+    this.guard();
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('settings')
         .select('*')
         .eq('id', 1)
@@ -442,8 +452,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async updateSettings(settings: Partial<SettingsData>): Promise<SettingsData> {
+    this.guard();
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('settings')
         .upsert({ id: 1, ...settings })
         .select()
@@ -462,6 +473,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async healthCheck(): Promise<boolean> {
+    if (!supabase) return false;
     try {
       const { error } = await supabase
         .from('teams')

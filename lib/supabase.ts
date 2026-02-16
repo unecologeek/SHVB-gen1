@@ -1,21 +1,26 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Configuration via variables d'environnement
 // Note : Si l'erreur 522 persiste, vérifiez sur database.new si le projet n'est pas "Paused"
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('⚠️ Variables Supabase manquantes. Vérifiez votre fichier .env.local');
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseKey);
+
+if (!hasSupabaseConfig) {
+  console.warn('⚠️ Variables Supabase manquantes (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Mode local/cache uniquement.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
-  }
-});
+// Ne créer le client que si la config est présente (évite "supabaseUrl is required" sur Vercel sans env)
+export const supabase: SupabaseClient | null = hasSupabaseConfig
+  ? createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    })
+  : null;
 
 // Helper pour gérer les erreurs RLS de manière plus explicite
 export const handleSupabaseError = (error: any, operation: string) => {

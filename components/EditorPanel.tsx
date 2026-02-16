@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AppConfig, Match, VisualType } from '../types';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from '../lib/appwrite';
+import { supabase } from '../lib/supabase';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';
 import { useLocalCache } from '../hooks/useLocalCache';
 
@@ -187,6 +188,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     };
 
     const syncSupabase = async () => {
+      if (!supabase) return;
       try {
         const { error } = await supabase.from('settings').upsert({ id: 1, ...payload });
         if (error) throw error;
