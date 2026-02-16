@@ -1,0 +1,7 @@
+{
+  "name": "VolleyResult Gen",
+  "description": "A professional tool to generate Instagram match result visuals for volleyball clubs, with customizable scores, teams, and leagues.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

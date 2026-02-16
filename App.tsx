@@ -1,0 +1,255 @@
+
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Match, AppConfig, VisualType, ConnectionSource, DB_SOURCE } from './types';
+import VisualPreview from './components/VisualPreview';
+import EditorPanel from './components/EditorPanel';
+import TeamDatabaseManager from './components/TeamDatabaseManager';
+import * as htmlToImage from 'html-to-image';
+import { tryConnectAppwrite, tryConnectSupabase } from './lib/database-helpers';
+import { DatabaseAdapter, DatabaseSource as DbAdapterSource } from './lib/db-adapter';
+import { useLocalCache } from './hooks/useLocalCache';
+
+interface TeamData {
+  id?: string;
+  name: string;
+  logo: string;
+  is_local?: boolean;
+}
+
+const App: React.FC = () => {
+  const [config, setConfig] = useState<AppConfig>({
+    visualType: 'results',
+    title: 'RÉSULTATS',
+    subtitle: 'SEMAINE 51',
+    resultsBg: '',
+    category: 'PRÉ NATIONALE MASCULINE',
+    matchDate: 'DIM. 01 FÉV - 15:00',
+    location: 'COMPLEXE SPORTIF DEMIANNAY',
+    previewBg: '',
+    victoryBg: '',
+    mainColor: '#F58220',
+    liveColor: '#FFD700',
+    showSlideIndicator: false,
+    totalSlides: 3,
+    currentSlide: 1,
+  });
+
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [activeSource, setActiveSource] = useState<ConnectionSource>(DB_SOURCE.LOCAL);
+  const [dbErrorMessage, setDbErrorMessage] = useState<string | null>(null);
+  const [victoryPhoto, setVictoryPhoto] = useState<string>('');
+  const [availableTeams, setAvailableTeams] = useState<TeamData[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
+  const [showDatabase, setShowDatabase] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [matches, setMatches] = useState<Match[]>([]);
+
+  const previewRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cache = useLocalCache();
+
+  const localTeam = useMemo(() => availableTeams.find(t => t.is_local), [availableTeams]);
+  const currentDimensions = useMemo(() => config.visualType === 'victory' ? { width: 1080, height: 1920 } : { width: 1080, height: 1080 }, [config.visualType]);
+
+  const updateScale = useCallback(() => {
+    if (!containerRef.current) return;
+    const { clientWidth, clientHeight } = containerRef.current;
+    const padding = 0.92;
+    const newScale = Math.min((clientWidth * padding) / currentDimensions.width, (clientHeight * padding) / currentDimensions.height);
+    setScale(newScale);
+  }, [currentDimensions]);
+
+  useEffect(() => {
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [updateScale, showDatabase, config.visualType]);
+
+  const loadFromCache = useCallback(() => {
+    const { config: cachedConfig, teams: cachedTeams } = cache.loadAll();
+    if (cachedConfig) setConfig(cachedConfig);
+    if (cachedTeams) setAvailableTeams(cachedTeams);
+    return !!cachedConfig;
+  }, [cache]);
+
+  const fetchTeams = useCallback(async (source: ConnectionSource, adapter?: DatabaseAdapter) => {
+    setLoadingTeams(true);
+    console.log(`🔄 [${source}] Tentative de chargement des clubs...`);
+    try {
+      if (source === 'APPWRITE' || source === 'SUPABASE') {
+        if (!adapter) {
+          console.warn(`⚠️ Aucun adapter disponible pour ${source}`);
+          return false;
+        }
+        const teams = await adapter.getTeams();
+        setAvailableTeams(teams);
+        console.log(`✅ [${source}] ${teams.length} clubs récupérés.`);
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      console.error(`❌ [${source}] Erreur lors de la récupération des clubs:`, {
+        message: err.message,
+        code: err.code || err.status,
+        type: err.type || 'Unknown'
+      });
+      return false;
+    } finally {
+      setLoadingTeams(false);
+    }
+  }, []);
+
+  const loadAll = useCallback(async () => {
+    console.log("🚀 Initialisation du Studio...");
+
+    // 1. TENTER APPWRITE
+    console.log("📡 [APPWRITE] Tentative de connexion...");
+    const appwriteResult = await tryConnectAppwrite(config);
+    if (appwriteResult) {
+      console.log("✅ [APPWRITE] Connexion réussie.");
+      setConfig(appwriteResult.config);
+      setAvailableTeams(appwriteResult.teams);
+      setActiveSource(DB_SOURCE.APPWRITE);
+      cache.saveAll(appwriteResult.config, appwriteResult.teams);
+      setConfigLoaded(true);
+      return;
+    }
+
+    // 2. TENTER SUPABASE
+    console.log("📡 [SUPABASE] Tentative de connexion...");
+    const supabaseResult = await tryConnectSupabase(config);
+    if (supabaseResult) {
+      console.log("✅ [SUPABASE] Connexion réussie.");
+      setConfig(supabaseResult.config);
+      setAvailableTeams(supabaseResult.teams);
+      setActiveSource(DB_SOURCE.SUPABASE);
+      cache.saveAll(supabaseResult.config, supabaseResult.teams);
+      setConfigLoaded(true);
+      return;
+    }
+
+    // 3. CACHE LOCAL OU JSON
+    console.log("🏠 Basculement en mode Local/Cache...");
+    if (loadFromCache()) {
+      setActiveSource(DB_SOURCE.CACHE);
+      setDbErrorMessage("Connexion cloud impossible. Utilisation des données locales du navigateur.");
+    } else {
+      setActiveSource(DB_SOURCE.LOCAL);
+      const res = await fetch('teams.json').catch(() => null);
+      if (res?.ok) {
+        const localData = await res.json();
+        setAvailableTeams(localData);
+        console.log("✅ [LOCAL] Données teams.json chargées.");
+      }
+    }
+    setConfigLoaded(true);
+  }, [config]);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  useEffect(() => {
+    if (availableTeams.length > 0 && matches.length === 0) {
+      const team = localTeam || availableTeams[0];
+      setMatches([{ id: '1', league: 'DIVISION', team1: { name: team.name, logo: team.logo }, team2: { name: 'ADVERSAIRE', logo: '' }, score1: 0, score2: 0, isLive: false }]);
+      cache.saveAll(config, availableTeams);
+    }
+  }, [availableTeams, localTeam, config, cache]);
+
+  const handleExport = async () => {
+    if (!previewRef.current) return;
+    setIsExporting(true);
+    try {
+      const dataUrl = await htmlToImage.toPng(previewRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      const link = document.createElement('a');
+      link.download = `shvb-${config.visualType}-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Export failed', err);
+      alert("Erreur lors de l'exportation. Vérifiez la console pour plus de détails.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  if (!configLoaded) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-950 text-white gap-8">
+        <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(249,115,22,0.3)]"></div>
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-sm font-black uppercase tracking-[0.4em] animate-pulse text-orange-500">Vérification des accès</span>
+          <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest text-center max-w-xs">Appwrite > Supabase > LocalStorage</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex flex-col md:flex-row bg-[#F0F2F5] overflow-hidden">
+      <div className="w-full md:w-[480px] h-[50vh] md:h-screen flex flex-col bg-white border-r border-gray-200 z-20 shadow-2xl shrink-0 overflow-y-auto custom-scrollbar">
+        <div className="p-8 flex flex-col gap-12">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 overflow-hidden">
+              <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center shadow-xl transform rotate-3 shrink-0">
+                 <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              </div>
+              <h1 className="text-2xl font-[900] text-gray-900 uppercase italic tracking-tighter truncate leading-tight">
+                Studio <span className="text-orange-600">|</span> <span className="opacity-70">{localTeam?.name || 'CLUB'}</span>
+              </h1>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <div 
+                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all cursor-help group relative ${
+                  activeSource === DB_SOURCE.APPWRITE ? 'bg-blue-50 border-blue-200 shadow-sm' : 
+                  activeSource === DB_SOURCE.SUPABASE ? 'bg-green-50 border-green-200' :
+                  'bg-orange-50 border-orange-200'
+                }`}
+              >
+                <div className={`w-3 h-3 rounded-full animate-pulse ${activeSource === DB_SOURCE.APPWRITE ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : activeSource === DB_SOURCE.SUPABASE ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                <span className={`text-[12px] font-black uppercase tracking-widest ${activeSource === DB_SOURCE.APPWRITE ? 'text-blue-700' : activeSource === DB_SOURCE.SUPABASE ? 'text-green-700' : 'text-orange-700'}`}>
+                  {activeSource}
+                </span>
+                <div className="absolute top-full right-0 mt-4 w-80 bg-gray-900 text-white p-6 rounded-[32px] shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] border border-white/10 pointer-events-none">
+                  <p className="text-xs font-black uppercase mb-4 text-orange-400 tracking-wider">Statut Connexion :</p>
+                  <div className="text-xs leading-relaxed font-bold bg-white/5 p-4 rounded-2xl border border-white/5 mb-4 italic">
+                    {dbErrorMessage || `Source active : ${activeSource}. Toutes les modifications sont synchronisées.`}
+                  </div>
+                  <p className="text-[10px] text-gray-500 uppercase font-black">Appwrite ID: {APPWRITE_CONFIG.PROJECT_ID}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDatabase(!showDatabase)} className={`p-3.5 rounded-2xl transition-all shadow-sm ${showDatabase ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+              </button>
+            </div>
+          </div>
+
+          {showDatabase && <div className="animate-in slide-in-from-top-8 duration-500"><TeamDatabaseManager onTeamsChange={() => fetchTeams(activeSource)} availableTeams={availableTeams} loadingTeams={loadingTeams} activeSource={activeSource} /></div>}
+
+          <EditorPanel config={config} setConfig={setConfig} matches={matches} setMatches={setMatches} availableTeams={availableTeams} victoryPhoto={victoryPhoto} setVictoryPhoto={setVictoryPhoto} />
+          
+          <button 
+            disabled={isExporting} 
+            onClick={handleExport}
+            className="w-full bg-black hover:bg-orange-600 disabled:bg-gray-400 text-white font-[900] py-8 px-6 rounded-[40px] transition-all shadow-xl flex flex-col items-center justify-center gap-2 transform active:scale-95"
+          >
+            <span className="text-2xl uppercase tracking-tighter">{isExporting ? 'Exportation...' : 'Télécharger l\'image'}</span>
+            <span className="text-xs opacity-60 font-black tracking-[0.3em] uppercase">Générer le PNG haute qualité</span>
+          </button>
+        </div>
+      </div>
+
+      <div ref={containerRef} className="flex-1 relative overflow-hidden preview-area bg-[#D1D5DB] flex items-center justify-center p-12">
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', width: `${currentDimensions.width}px`, height: `${currentDimensions.height}px` }} className="shadow-[0_100px_200px_-50px_rgba(0,0,0,0.7)] shrink-0 bg-white rounded-sm overflow-hidden">
+          <VisualPreview ref={previewRef} config={config} matches={matches} victoryPhoto={victoryPhoto} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
