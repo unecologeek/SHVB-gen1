@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withCors, jsonResponse } from '../../lib/vercel-api/cors';
-import { getSql } from '../../lib/vercel-api/db';
+import { withCors, jsonResponse, getSql } from './shared';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   return withCors(req, res, async () => {

@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withCors, jsonResponse } from '../../lib/vercel-api/cors';
-import { getSql, type TeamRow } from '../../lib/vercel-api/db';
+import { withCors, jsonResponse, getSql, type TeamRow } from './shared';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  // #region agent log
+  try { console.log('[DEBUG] api/teams handler entry', { method: req.method }); } catch (_) {}
+  // #endregion
   return withCors(req, res, async () => {
     try {
       const sql = getSql();
