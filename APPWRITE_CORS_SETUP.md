@@ -34,6 +34,18 @@ Blocage d'une requête multiorigines (Cross-Origin Request) : la politique « Sa
 - **Preview/Staging** : `https://*.vercel.app` (optionnel, pour toutes les previews)
 - **Local** : `http://localhost:3000` (pour le développement)
 
+## Si vous avez toujours 403 ou CORS
+
+Un **403** avec le message **"CORS Missing Allow Origin"** peut avoir **deux causes** (à vérifier dans la console Appwrite, pas dans le code) :
+
+1. **Domaine non autorisé**  
+   Vérifiez que l’origine de l’app (ex. `https://shvb-gen1.vercel.app`) est bien ajoutée dans **Settings > Domains** du projet. Sans cela, Appwrite peut renvoyer 403 et ne pas inclure les en-têtes CORS, ce qui affiche ce message dans le navigateur.
+
+2. **Permissions des collections**  
+   Si le domaine est correct, le 403 vient souvent des **permissions** des collections. Ouvrez la base **SHVBdb**, puis les collections **teams** et **settings**. Pour un accès sans connexion utilisateur, autorisez au moins **Read** (et **Create** / **Update** si besoin) pour le rôle **Any** (ou équivalent « tout le monde »). Sinon Appwrite renvoie 403 ; sur certaines réponses d’erreur les en-têtes CORS ne sont pas envoyés, d’où le même message côté navigateur.
+
+En résumé : 403 + "CORS Missing Allow Origin" = vérifier **domaines** puis **permissions** des collections dans Appwrite.
+
 ## Vérification
 
 Après avoir configuré les domaines, l'application devrait automatiquement :

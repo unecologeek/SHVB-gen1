@@ -7,7 +7,7 @@ import TeamDatabaseManager from './components/TeamDatabaseManager';
 import * as htmlToImage from 'html-to-image';
 import { tryConnectAppwrite, tryConnectSupabase } from './lib/database-helpers';
 import { DatabaseAdapter, DatabaseSource as DbAdapterSource } from './lib/db-adapter';
-import { APPWRITE_CONFIG } from './lib/appwrite';
+import { client, APPWRITE_CONFIG } from './lib/appwrite';
 import { useLocalCache } from './hooks/useLocalCache';
 
 interface TeamData {
@@ -60,6 +60,11 @@ const App: React.FC = () => {
     const newScale = Math.min((clientWidth * padding) / currentDimensions.width, (clientHeight * padding) / currentDimensions.height);
     setScale(newScale);
   }, [currentDimensions]);
+
+  // Ping Appwrite au chargement pour vérifier la connexion (setup Appwrite)
+  useEffect(() => {
+    client.ping().then(() => console.log('✅ [APPWRITE] Ping OK')).catch((e) => console.warn('⚠️ [APPWRITE] Ping:', e?.message || e));
+  }, []);
 
   useEffect(() => {
     updateScale();
