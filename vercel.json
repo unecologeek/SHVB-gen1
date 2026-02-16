@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/teams/index.ts": { "includeFiles": "lib/vercel-api/**" },
+    "api/teams/[id].ts": { "includeFiles": "lib/vercel-api/**" },
+    "api/teams/set-local.ts": { "includeFiles": "lib/vercel-api/**" },
+    "api/settings/index.ts": { "includeFiles": "lib/vercel-api/**" }
+  }
+}
