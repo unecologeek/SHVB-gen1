@@ -183,7 +183,7 @@ const App: React.FC = () => {
         <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(249,115,22,0.3)]"></div>
         <div className="flex flex-col items-center gap-3">
           <span className="text-sm font-black uppercase tracking-[0.4em] animate-pulse text-orange-500">Vérification des accès</span>
-          <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest text-center max-w-xs">Appwrite > Supabase > LocalStorage</span>
+          <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest text-center max-w-xs">{'Appwrite > Supabase > LocalStorage'}</span>
         </div>
       </div>
     );
