@@ -16,7 +16,7 @@ export function withCors(
   req: VercelRequest,
   res: VercelResponse,
   handler: () => void | Promise<void>
-): void {
+): void | Promise<void> {
   const origin = getOrigin(req);
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
@@ -27,7 +27,7 @@ export function withCors(
     return;
   }
 
-  Promise.resolve(handler()).catch((err) => {
+  return Promise.resolve(handler()).catch((err) => {
     console.error('[API]', err);
     if (!res.headersSent) {
       res.status(500).json({ error: err?.message || 'Internal error', code: 'INTERNAL' });
