@@ -7,6 +7,7 @@ import TeamDatabaseManager from './components/TeamDatabaseManager';
 import * as htmlToImage from 'html-to-image';
 import { tryConnectAppwrite, tryConnectSupabase } from './lib/database-helpers';
 import { DatabaseAdapter, DatabaseSource as DbAdapterSource } from './lib/db-adapter';
+import { APPWRITE_CONFIG } from './lib/appwrite';
 import { useLocalCache } from './hooks/useLocalCache';
 
 interface TeamData {

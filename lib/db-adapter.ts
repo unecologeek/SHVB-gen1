@@ -2,6 +2,7 @@
 import { supabase, handleSupabaseError } from './supabase';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from './appwrite';
 import { AppConfig } from '../types';
+import { isCORSError } from './retry';
 
 export type DatabaseSource = 'APPWRITE' | 'SUPABASE';
 
@@ -68,11 +69,16 @@ export class AppwriteAdapter implements DatabaseAdapter {
         is_local: doc.is_local || false
       }));
     } catch (error: any) {
+      if (isCORSError(error)) {
+        console.error('❌ [APPWRITE CORS] Erreur CORS détectée. Configurez les domaines autorisés dans Appwrite Dashboard.');
+        console.error('💡 Solution: Ajoutez votre domaine Vercel dans Appwrite → Settings → Domains');
+      }
       console.error('[APPWRITE] Erreur lors de la récupération des équipes:', error);
       throw {
         message: error.message || 'Erreur lors de la récupération des équipes',
         code: error.code || 'UNKNOWN',
-        type: error.type || 'Unknown'
+        type: error.type || 'Unknown',
+        isCORS: isCORSError(error)
       };
     }
   }
@@ -279,7 +285,10 @@ export class AppwriteAdapter implements DatabaseAdapter {
         1 // Limiter à 1 document pour un health check rapide
       );
       return true;
-    } catch {
+    } catch (error: any) {
+      if (isCORSError(error)) {
+        console.warn('⚠️ [APPWRITE] Health check échoué à cause de CORS. Configurez les domaines dans Appwrite Dashboard.');
+      }
       return false;
     }
   }

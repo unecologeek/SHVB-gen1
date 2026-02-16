@@ -73,11 +73,33 @@ export const withRetry = async <T>(
 };
 
 /**
+ * Vérifie si une erreur est une erreur CORS
+ */
+export const isCORSError = (error: any): boolean => {
+  const message = (error.message || '').toLowerCase();
+  const type = (error.type || '').toLowerCase();
+  
+  return (
+    message.includes('cors') ||
+    message.includes('access-control-allow-origin') ||
+    message.includes('cross-origin') ||
+    message.includes('same origin') ||
+    type === 'cors_error' ||
+    (error.code === 403 && message.includes('origin'))
+  );
+};
+
+/**
  * Détermine si une erreur est retryable
  */
 export const isRetryableError = (error: any): boolean => {
-  // Erreurs réseau
-  if (error.message?.includes('fetch') || error.message?.includes('network') || error.message?.includes('CORS')) {
+  // Les erreurs CORS ne sont PAS retryables - elles nécessitent une configuration serveur
+  if (isCORSError(error)) {
+    return false;
+  }
+
+  // Erreurs réseau (mais pas CORS)
+  if (error.message?.includes('fetch') || error.message?.includes('network')) {
     return true;
   }
 
@@ -96,7 +118,7 @@ export const isRetryableError = (error: any): boolean => {
     return true;
   }
 
-  // Erreurs spécifiques Appwrite
+  // Erreurs spécifiques Appwrite (mais pas CORS)
   if (error.type === 'network_error' || error.type === 'timeout') {
     return true;
   }
