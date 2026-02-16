@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withCors, jsonResponse, getSql, type TeamRow } from './shared';
+import { withCors, jsonResponse, getSql, type TeamRow } from './shared.js';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   const id = (req.query?.id as string)?.trim();
