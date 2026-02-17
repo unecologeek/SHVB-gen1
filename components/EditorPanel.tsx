@@ -155,21 +155,28 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     }
   };
 
-  const sync = async (newConfig: AppConfig) => {
-    setSaving(true);
-    const payload = { 
-      title: newConfig.title, 
-      subtitle: newConfig.subtitle, 
-      results_bg: newConfig.resultsBg, 
-      preview_bg: newConfig.previewBg, 
-      victory_bg: newConfig.victoryBg, 
-      main_color: newConfig.mainColor, 
-      visual_type: newConfig.visualType, 
-      category: newConfig.category, 
-      match_date: newConfig.matchDate, 
-      location: newConfig.location 
-    };
+  const buildPayloadFromUpdates = (updates: Partial<AppConfig>): Record<string, unknown> => {
+    const payload: Record<string, unknown> = {};
+    if (updates.title !== undefined) payload.title = updates.title;
+    if (updates.subtitle !== undefined) payload.subtitle = updates.subtitle;
+    if (updates.resultsBg !== undefined) payload.results_bg = updates.resultsBg;
+    if (updates.previewBg !== undefined) payload.preview_bg = updates.previewBg;
+    if (updates.victoryBg !== undefined) payload.victory_bg = updates.victoryBg;
+    if (updates.mainColor !== undefined) payload.main_color = updates.mainColor;
+    if (updates.visualType !== undefined) payload.visual_type = updates.visualType;
+    if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.matchDate !== undefined) payload.match_date = updates.matchDate;
+    if (updates.location !== undefined) payload.location = updates.location;
+    return payload;
+  };
 
+  const sync = async (newConfig: AppConfig, updates: Partial<AppConfig>) => {
+    setSaving(true);
+    const payload = buildPayloadFromUpdates(updates);
+    if (Object.keys(payload).length === 0) {
+      setSaving(false);
+      return;
+    }
     cache.saveConfig(newConfig);
 
     const syncAppwrite = async () => {
@@ -192,7 +199,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     const syncSupabase = async () => {
       if (!supabase) return;
       try {
-        const { error } = await supabase.from('settings').upsert({ id: 1, ...payload });
+        const { error } = await supabase.from('settings').upsert({ id: 1, ...payload }, { onConflict: 'id' });
         if (error) throw error;
         console.log("📤 [SUPABASE] Synchronisation réussie.");
       } catch (e: any) {
@@ -225,7 +232,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
   const handleConfigUpdate = (updates: Partial<AppConfig>) => {
     setConfig(prev => {
       const updated = { ...prev, ...updates };
-      sync(updated);
+      sync(updated, updates);
       return updated;
     });
   };
