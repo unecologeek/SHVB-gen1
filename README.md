@@ -10,7 +10,7 @@
 - **Gestion des équipes et logos** : import de clubs (nom + logo), désignation du club « local », recherche et sélection dans les listes pour composer les matchs affichés.
 - **Personnalisation** : titres, sous-titres, couleurs principales, images de fond par type de visuel (résultats, affiche, victoire), date et lieu du match.
 - **Export** : téléchargement du visuel en PNG haute qualité (résolution adaptée au type : 1080×1080 ou 1080×1920 pour la victoire).
-- **Multi-sources de données** : connexion automatique à **Convex**, **Neon** (PostgreSQL via API), **Appwrite** ou **Supabase** ; à défaut, utilisation du cache navigateur ou du fichier local `teams.json`. L’ordre de tentative est : Convex → Neon → Appwrite → Supabase → cache local.
+- **Multi-sources de données** : connexion automatique à **Aiven** (PostgreSQL), **Convex**, **Neon** (PostgreSQL via API), **Appwrite** ou **Supabase** ; à défaut, utilisation du cache navigateur ou du fichier local `teams.json`. L’ordre de tentative est : Aiven → Convex → Neon → Appwrite → Supabase → cache local (chaque option n’est testée que si les précédentes ont échoué).
 - **Synchronisation** : les modifications (paramètres, équipes) sont enregistrées sur la source active et mises en cache local.
 
 ## Lancer en local
@@ -33,16 +33,25 @@
 
 ## Variables d’environnement par fournisseur BDD
 
-Le programme tente de se connecter aux sources dans l’ordre ci‑dessous. Toutes les variables listées sont optionnelles selon la source que vous utilisez ; le fichier [.env.example](.env.example) et ce README font référence pour l’ensemble des variables utilisables.
+Le programme tente de se connecter aux sources **en cascade** : Aiven d’abord ; en cas d’échec, Convex, puis Neon, Appwrite, Supabase ; enfin cache local. Dès qu’une source répond, les suivantes ne sont pas testées. Toutes les variables listées sont optionnelles selon la source que vous utilisez ; le fichier [.env.example](.env.example) et ce README font référence pour l’ensemble des variables utilisables.
 
-### Convex (priorité 1)
+### Aiven – API PostgreSQL (priorité 1)
+
+Première option testée. Même API que Neon : les routes utilisent le paramètre `?db=aiven` et la variable `AIVEN_DATABASE_URL` (ou `shvb_AIVEN_DATABASE_URL` sur Vercel). La connexion Aiven utilise SSL (`sslmode=require`). Appliquer le schéma une fois sur la base Aiven : [scripts/aiven-schema.sql](scripts/aiven-schema.sql) (même structure que Neon : tables `teams`, `settings`, `background_images`).
+
+| Variable | Côté | Description | Requis |
+|----------|------|--------------|--------|
+| `AIVEN_DATABASE_URL` | Serveur/API | URI de connexion PostgreSQL (ex. `postgres://user:pass@host:port/defaultdb?sslmode=require`). | Oui, pour l’API Aiven |
+| `shvb_AIVEN_DATABASE_URL` | Serveur/API (Vercel) | Même usage que `AIVEN_DATABASE_URL` (priorité sur Vercel). | Optionnel |
+
+### Convex (priorité 2)
 
 | Variable | Description | Requis |
 |----------|--------------|--------|
 | `VITE_CONVEX_URL` | URL du déploiement Convex pour le client frontend (ex. `https://xxx.convex.cloud`). | Oui, pour utiliser Convex |
 | `CONVEX_DEPLOYMENT` | Nom du déploiement (écrit par `npx convex dev` dans `.env.local`). Utilisé par le CLI. | Optionnel |
 
-### Neon – API PostgreSQL (priorité 2)
+### Neon – API PostgreSQL (priorité 3)
 
 | Variable | Côté | Description | Requis |
 |----------|------|--------------|--------|
@@ -50,7 +59,7 @@ Le programme tente de se connecter aux sources dans l’ordre ci‑dessous. Tout
 | `shvb_DATABASE_URL` | Serveur/API (Vercel avec préfixe) | Même usage que `DATABASE_URL` (priorité sur Vercel). | Optionnel |
 | `VITE_API_URL` | Frontend | Base URL de l’API si elle tourne ailleurs (ex. `http://localhost:3000`). | Optionnel |
 
-### Appwrite (priorité 3)
+### Appwrite (priorité 4)
 
 | Variable | Description | Requis |
 |----------|--------------|--------|
@@ -61,7 +70,7 @@ Le programme tente de se connecter aux sources dans l’ordre ci‑dessous. Tout
 | `VITE_APPWRITE_COLLECTION_TEAMS` | Nom de la collection des équipes. | Optionnel (défaut possible) |
 | `VITE_APPWRITE_COLLECTION_SETTINGS` | Nom de la collection des paramètres. | Optionnel (défaut possible) |
 
-### Supabase (priorité 4)
+### Supabase (priorité 5)
 
 | Variable | Description | Requis |
 |----------|--------------|--------|
@@ -70,11 +79,14 @@ Le programme tente de se connecter aux sources dans l’ordre ci‑dessous. Tout
 
 ---
 
-## Créer les tables (Neon / PostgreSQL)
+## Créer les tables (Neon / Aiven / PostgreSQL)
 
-Exécuter le script SQL suivant **une fois** dans le **SQL Editor** de votre projet Neon (ou toute base PostgreSQL utilisée par l’API).
+Exécuter le script SQL suivant **une fois** dans le **SQL Editor** de votre projet Neon ou Aiven (ou toute base PostgreSQL utilisée par l’API).
 
-Vous pouvez utiliser le fichier [scripts/neon-schema.sql](scripts/neon-schema.sql) ou coller le contenu ci‑dessous :
+- **Neon** : [scripts/neon-schema.sql](scripts/neon-schema.sql)
+- **Aiven** : [scripts/aiven-schema.sql](scripts/aiven-schema.sql) (même structure ; connexion avec `sslmode=require`)
+
+Ou coller le contenu ci‑dessous :
 
 ```sql
 -- Table des équipes

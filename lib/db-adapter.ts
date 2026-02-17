@@ -706,7 +706,7 @@ export class ConvexAdapter implements DatabaseAdapter {
 export class NeonAdapter implements DatabaseAdapter {
   source: DatabaseSource = 'NEON';
 
-  private api(path: string, options?: RequestInit): Promise<Response> {
+  protected api(path: string, options?: RequestInit): Promise<Response> {
     const base = getApiBase();
     return fetch(`${base}/api${path}`, {
       ...options,
@@ -804,12 +804,30 @@ export class NeonAdapter implements DatabaseAdapter {
 }
 
 /**
+ * Adapter pour Aiven PostgreSQL (API Vercel, même routes que Neon avec ?db=aiven)
+ */
+export class AivenAdapter extends NeonAdapter {
+  override source: DatabaseSource = 'AIVEN';
+
+  protected override api(path: string, options?: RequestInit): Promise<Response> {
+    const base = getApiBase();
+    const sep = path.includes('?') ? '&' : '?';
+    return fetch(`${base}/api${path}${sep}db=aiven`, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+    });
+  }
+}
+
+/**
  * Factory pour créer l'adapter approprié
  */
 export const createDatabaseAdapter = (source: DatabaseSource): DatabaseAdapter => {
   switch (source) {
     case 'NEON':
       return new NeonAdapter();
+    case 'AIVEN':
+      return new AivenAdapter();
     case 'APPWRITE':
       return new AppwriteAdapter();
     case 'SUPABASE':

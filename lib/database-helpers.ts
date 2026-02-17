@@ -167,3 +167,20 @@ export const tryConnectNeon = async (
     adapter: result.adapter
   };
 };
+
+/**
+ * Tente de se connecter à Aiven PostgreSQL (API) et charger les données
+ */
+export const tryConnectAiven = async (
+  defaultConfig: AppConfig
+): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
+  const result = await loadSettingsFromSource('AIVEN', defaultConfig);
+  if (!result) return null;
+
+  const teams = await loadTeamsFromSource(result.adapter);
+  return {
+    config: result.config,
+    teams,
+    adapter: result.adapter
+  };
+};

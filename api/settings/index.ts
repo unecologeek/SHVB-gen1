@@ -4,7 +4,8 @@ import { withCors, jsonResponse, getSql } from './shared.js';
 export default function handler(req: VercelRequest, res: VercelResponse) {
   return withCors(req, res, async () => {
     try {
-      const sql = getSql();
+      const db = (req.query as { db?: string })?.db === 'aiven' ? 'aiven' : 'neon';
+      const sql = getSql(db);
       if (!sql) {
         jsonResponse(res, 503, { error: 'Database not configured', code: 'NO_DATABASE' });
         return;
