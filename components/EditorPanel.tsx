@@ -405,6 +405,32 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
                 <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Sous-titre</span>
                 <input type="text" value={config.subtitle} onChange={(e) => handleConfigUpdate({ subtitle: e.target.value.toUpperCase() })} className="w-full bg-white border border-blue-100 rounded-[24px] p-5 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm" />
               </div>
+              <div className="flex flex-col gap-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={config.showSlideIndicator} onChange={(e) => handleConfigUpdate({ showSlideIndicator: e.target.checked })} className="w-5 h-5 rounded border-2 border-blue-200 text-blue-600 focus:ring-blue-400" />
+                  <span className="text-xs font-black text-blue-400 uppercase tracking-widest">Afficher la pagination</span>
+                </label>
+                {config.showSlideIndicator && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Nombre de slides</span>
+                      <select value={config.totalSlides} onChange={(e) => { const n = Number(e.target.value); handleConfigUpdate({ totalSlides: n, currentSlide: Math.min(config.currentSlide, n) }); }} className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm appearance-none cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '20px', paddingRight: '44px' }}>
+                        {Array.from({ length: 9 }, (_, i) => i + 2).map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Slide active</span>
+                      <select value={config.currentSlide} onChange={(e) => handleConfigUpdate({ currentSlide: Number(e.target.value) })} className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm appearance-none cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '20px', paddingRight: '44px' }}>
+                        {Array.from({ length: config.totalSlides }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

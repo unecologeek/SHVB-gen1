@@ -272,9 +272,9 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           ))}
         </div>
 
-        <div className="w-full flex flex-col items-center mt-auto pt-8 pb-4" style={{ marginBottom: isCompact ? '24px' : '48px' }}>
+        <div className="w-full flex flex-col items-center mt-auto pt-8 pb-6" style={{ marginBottom: isCompact ? '28px' : '52px' }}>
           {config.showSlideIndicator ? (
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3 py-5 min-h-[52px]">
               {Array.from({ length: config.totalSlides }).map((_, i) => (
                 <div key={i} style={{ backgroundColor: i + 1 === config.currentSlide ? config.mainColor : '#E5E7EB', width: i + 1 === config.currentSlide ? '76px' : '22px', height: '22px', borderRadius: '11px' }} />
               ))}
