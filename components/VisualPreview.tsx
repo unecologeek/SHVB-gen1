@@ -229,7 +229,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           </p>
         </div>
 
-        <div className={`w-full px-12 flex flex-col flex-1 justify-start ${isCompact ? 'gap-6 pt-2' : 'gap-10 pt-6'}`}>
+        <div className={`w-full px-12 flex flex-col flex-1 justify-start min-h-0 ${isCompact ? 'gap-6 pt-2' : 'gap-10 pt-6'}`}>
           {matches.slice(0, 4).map((match) => (
             <div key={match.id} className={`flex flex-col w-full ${isCompact ? 'gap-2.5' : 'gap-4'}`}>
               <h2 className="text-center text-gray-400 uppercase tracking-[0.2em] font-heavy-bold break-words px-20" style={{ fontSize: isCompact ? '18px' : '20px' }}>
@@ -274,7 +274,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           ))}
         </div>
 
-        <div className="w-full flex flex-col items-center mt-auto pt-8 pb-6" style={{ marginBottom: isCompact ? '28px' : '52px' }}>
+        <div className="w-full flex flex-col items-center shrink-0" style={{ paddingTop: isCompact ? '28px' : '40px', paddingBottom: isCompact ? '36px' : '44px' }}>
           {config.showSlideIndicator ? (
             <div className="flex items-center justify-center gap-3 py-5 min-h-[52px]">
               {Array.from({ length: config.totalSlides }).map((_, i) => (
