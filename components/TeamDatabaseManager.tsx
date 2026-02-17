@@ -70,7 +70,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
   };
 
   const getAdapter = (): DatabaseAdapter | null => {
-    if (activeSource === 'NEON' || activeSource === 'APPWRITE' || activeSource === 'SUPABASE') {
+    if (activeSource === 'CONVEX' || activeSource === 'NEON' || activeSource === 'APPWRITE' || activeSource === 'SUPABASE') {
       try {
         return createDatabaseAdapter(activeSource);
       } catch {

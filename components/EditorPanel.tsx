@@ -4,6 +4,7 @@ import { AppConfig, Match, VisualType, ConnectionSource } from '../types';
 import { DB_SOURCE } from '../types';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from '../lib/appwrite';
 import { supabase } from '../lib/supabase';
+import { createDatabaseAdapter } from '../lib/db-adapter';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';
 import { useLocalCache } from '../hooks/useLocalCache';
 
@@ -223,8 +224,19 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
       }
     };
 
+    const syncConvex = async () => {
+      if (activeSource !== DB_SOURCE.CONVEX) return;
+      try {
+        const adapter = createDatabaseAdapter('CONVEX');
+        await adapter.updateSettings(payload);
+        console.log("📤 [CONVEX] Synchronisation réussie.");
+      } catch (e: any) {
+        console.error("⚠️ [CONVEX] Échec synchronisation:", { message: e?.message });
+      }
+    };
+
     // On lance les syncos en parallèle sans bloquer l'UI
-    Promise.all([syncNeon(), syncAppwrite(), syncSupabase()]).finally(() => {
+    Promise.all([syncNeon(), syncAppwrite(), syncSupabase(), syncConvex()]).finally(() => {
       setTimeout(() => setSaving(false), 600);
     });
   };

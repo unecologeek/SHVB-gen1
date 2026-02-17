@@ -5,7 +5,7 @@ import VisualPreview from './components/VisualPreview';
 import EditorPanel from './components/EditorPanel';
 import TeamDatabaseManager from './components/TeamDatabaseManager';
 import * as htmlToImage from 'html-to-image';
-import { tryConnectNeon, tryConnectAppwrite, tryConnectSupabase } from './lib/database-helpers';
+import { tryConnectConvex, tryConnectNeon, tryConnectAppwrite, tryConnectSupabase } from './lib/database-helpers';
 import { DatabaseAdapter, DatabaseSource as DbAdapterSource, createDatabaseAdapter } from './lib/db-adapter';
 import { APPWRITE_CONFIG } from './lib/appwrite';
 import { useLocalCache } from './hooks/useLocalCache';
@@ -78,7 +78,7 @@ const App: React.FC = () => {
     setLoadingTeams(true);
     console.log(`🔄 [${source}] Tentative de chargement des clubs...`);
     try {
-      if (source === 'NEON' || source === 'APPWRITE' || source === 'SUPABASE') {
+      if (source === 'CONVEX' || source === 'NEON' || source === 'APPWRITE' || source === 'SUPABASE') {
         const dbAdapter = adapter ?? createDatabaseAdapter(source);
         const teams = await dbAdapter.getTeams();
         setAvailableTeams(teams);
@@ -101,7 +101,20 @@ const App: React.FC = () => {
   const loadAll = useCallback(async () => {
     console.log("🚀 Initialisation du Studio...");
 
-    // 1. TENTER NEON (API PostgreSQL)
+    // 1. TENTER CONVEX
+    console.log("📡 [CONVEX] Tentative de connexion...");
+    const convexResult = await tryConnectConvex(config);
+    if (convexResult) {
+      console.log("✅ [CONVEX] Connexion réussie.");
+      setConfig(convexResult.config);
+      setAvailableTeams(convexResult.teams);
+      setActiveSource(DB_SOURCE.CONVEX);
+      cache.saveAll(convexResult.config, convexResult.teams);
+      setConfigLoaded(true);
+      return;
+    }
+
+    // 2. TENTER NEON (API PostgreSQL)
     console.log("📡 [NEON] Tentative de connexion...");
     const neonResult = await tryConnectNeon(config);
     if (neonResult) {
@@ -114,7 +127,7 @@ const App: React.FC = () => {
       return;
     }
 
-    // 2. TENTER APPWRITE
+    // 3. TENTER APPWRITE
     console.log("📡 [APPWRITE] Tentative de connexion...");
     const appwriteResult = await tryConnectAppwrite(config);
     if (appwriteResult) {
@@ -127,7 +140,7 @@ const App: React.FC = () => {
       return;
     }
 
-    // 3. TENTER SUPABASE
+    // 4. TENTER SUPABASE
     console.log("📡 [SUPABASE] Tentative de connexion...");
     const supabaseResult = await tryConnectSupabase(config);
     if (supabaseResult) {
@@ -140,7 +153,7 @@ const App: React.FC = () => {
       return;
     }
 
-    // 4. CACHE LOCAL OU JSON
+    // 5. CACHE LOCAL OU JSON
     console.log("🏠 Basculement en mode Local/Cache...");
     if (loadFromCache()) {
       setActiveSource(DB_SOURCE.CACHE);
@@ -197,7 +210,7 @@ const App: React.FC = () => {
         <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(249,115,22,0.3)]"></div>
         <div className="flex flex-col items-center gap-3">
           <span className="text-sm font-black uppercase tracking-[0.4em] animate-pulse text-orange-500">Vérification des accès</span>
-          <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest text-center max-w-xs">{'Neon > Appwrite > Supabase > LocalStorage'}</span>
+          <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest text-center max-w-xs">{'Convex > Neon > Appwrite > Supabase > LocalStorage'}</span>
         </div>
       </div>
     );
@@ -218,16 +231,17 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              <div 
+              <div
                 className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all cursor-help group relative ${
+                  activeSource === DB_SOURCE.CONVEX ? 'bg-violet-50 border-violet-200 shadow-sm' :
                   activeSource === DB_SOURCE.NEON ? 'bg-emerald-50 border-emerald-200 shadow-sm' :
-                  activeSource === DB_SOURCE.APPWRITE ? 'bg-blue-50 border-blue-200 shadow-sm' : 
+                  activeSource === DB_SOURCE.APPWRITE ? 'bg-blue-50 border-blue-200 shadow-sm' :
                   activeSource === DB_SOURCE.SUPABASE ? 'bg-green-50 border-green-200' :
                   'bg-orange-50 border-orange-200'
                 }`}
               >
-                <div className={`w-3 h-3 rounded-full animate-pulse ${activeSource === DB_SOURCE.NEON ? 'bg-emerald-500' : activeSource === DB_SOURCE.APPWRITE ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : activeSource === DB_SOURCE.SUPABASE ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                <span className={`text-[12px] font-black uppercase tracking-widest ${activeSource === DB_SOURCE.NEON ? 'text-emerald-700' : activeSource === DB_SOURCE.APPWRITE ? 'text-blue-700' : activeSource === DB_SOURCE.SUPABASE ? 'text-green-700' : 'text-orange-700'}`}>
+                <div className={`w-3 h-3 rounded-full animate-pulse ${activeSource === DB_SOURCE.CONVEX ? 'bg-violet-500' : activeSource === DB_SOURCE.NEON ? 'bg-emerald-500' : activeSource === DB_SOURCE.APPWRITE ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : activeSource === DB_SOURCE.SUPABASE ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                <span className={`text-[12px] font-black uppercase tracking-widest ${activeSource === DB_SOURCE.CONVEX ? 'text-violet-700' : activeSource === DB_SOURCE.NEON ? 'text-emerald-700' : activeSource === DB_SOURCE.APPWRITE ? 'text-blue-700' : activeSource === DB_SOURCE.SUPABASE ? 'text-green-700' : 'text-orange-700'}`}>
                   {activeSource}
                 </span>
                 <div className="absolute top-full right-0 mt-4 w-80 bg-gray-900 text-white p-6 rounded-[32px] shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] border border-white/10 pointer-events-none">

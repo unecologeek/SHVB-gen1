@@ -1,10 +1,12 @@
 
 import { supabase, handleSupabaseError } from './supabase';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from './appwrite';
+import { convexClient, isConvexReady } from './convex';
+import { api } from '../convex/_generated/api';
 import { AppConfig } from '../types';
 import { isCORSError } from './retry';
 
-export type DatabaseSource = 'NEON' | 'APPWRITE' | 'SUPABASE';
+export type DatabaseSource = 'NEON' | 'APPWRITE' | 'SUPABASE' | 'CONVEX';
 
 function getApiBase(): string {
   return (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || '';
@@ -501,6 +503,100 @@ export class SupabaseAdapter implements DatabaseAdapter {
 }
 
 /**
+ * Adapter pour Convex
+ */
+export class ConvexAdapter implements DatabaseAdapter {
+  source: DatabaseSource = 'CONVEX';
+
+  private get client() {
+    if (!convexClient || !isConvexReady()) throw new Error('Convex non configuré (VITE_CONVEX_URL)');
+    return convexClient;
+  }
+
+  async getTeams(): Promise<TeamData[]> {
+    const list = await this.client.query(api.teams.list, {});
+    return (list || []).map((doc: { _id: string; name: string; logo: string; is_local: boolean }) => ({
+      id: doc._id,
+      name: doc.name,
+      logo: doc.logo ?? '',
+      is_local: Boolean(doc.is_local),
+    }));
+  }
+
+  async createTeam(team: Omit<TeamData, 'id'>): Promise<TeamData> {
+    const id = await this.client.mutation(api.teams.create, {
+      name: team.name,
+      logo: team.logo ?? '',
+      is_local: team.is_local ?? false,
+    });
+    return { id: id as string, name: team.name, logo: team.logo ?? '', is_local: team.is_local ?? false };
+  }
+
+  async updateTeam(id: string, team: Partial<TeamData>): Promise<TeamData> {
+    const payload: { id: string; name?: string; logo?: string; is_local?: boolean } = { id };
+    if (team.name !== undefined) payload.name = team.name;
+    if (team.logo !== undefined) payload.logo = team.logo;
+    if (team.is_local !== undefined) payload.is_local = team.is_local;
+    const doc = await this.client.mutation(api.teams.update, payload as { id: string; name?: string; logo?: string; is_local?: boolean });
+    if (!doc) throw new Error('Équipe introuvable');
+    return { id: doc._id, name: doc.name, logo: doc.logo ?? '', is_local: Boolean(doc.is_local) };
+  }
+
+  async deleteTeam(id: string): Promise<void> {
+    await this.client.mutation(api.teams.remove, { id });
+  }
+
+  async setLocalTeam(id: string): Promise<void> {
+    await this.client.mutation(api.teams.setLocal, { id });
+  }
+
+  async getSettings(): Promise<SettingsData | null> {
+    const doc = await this.client.query(api.settings.get, {});
+    if (!doc) return null;
+    return {
+      title: doc.title,
+      subtitle: doc.subtitle,
+      results_bg: doc.results_bg,
+      preview_bg: doc.preview_bg,
+      victory_bg: doc.victory_bg,
+      main_color: doc.main_color,
+      visual_type: doc.visual_type,
+      category: doc.category,
+      match_date: doc.match_date,
+      location: doc.location,
+    };
+  }
+
+  async updateSettings(settings: Partial<SettingsData>): Promise<SettingsData> {
+    await this.client.mutation(api.settings.update, settings);
+    const doc = await this.client.query(api.settings.get, {});
+    if (!doc) return {} as SettingsData;
+    return {
+      title: doc.title,
+      subtitle: doc.subtitle,
+      results_bg: doc.results_bg,
+      preview_bg: doc.preview_bg,
+      victory_bg: doc.victory_bg,
+      main_color: doc.main_color,
+      visual_type: doc.visual_type,
+      category: doc.category,
+      match_date: doc.match_date,
+      location: doc.location,
+    };
+  }
+
+  async healthCheck(): Promise<boolean> {
+    try {
+      if (!isConvexReady()) return false;
+      await this.client.query(api.settings.get, {});
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
  * Adapter pour Neon (API Vercel)
  */
 export class NeonAdapter implements DatabaseAdapter {
@@ -592,6 +688,8 @@ export const createDatabaseAdapter = (source: DatabaseSource): DatabaseAdapter =
       return new AppwriteAdapter();
     case 'SUPABASE':
       return new SupabaseAdapter();
+    case 'CONVEX':
+      return new ConvexAdapter();
     default:
       throw new Error(`Source de base de données non supportée: ${source}`);
   }

@@ -3,6 +3,7 @@ export type VisualType = 'results' | 'preview' | 'victory';
 
 // Types stricts pour les sources de base de données
 export const DB_SOURCE = {
+  CONVEX: 'CONVEX',
   NEON: 'NEON',
   APPWRITE: 'APPWRITE',
   SUPABASE: 'SUPABASE',
@@ -10,7 +11,7 @@ export const DB_SOURCE = {
   LOCAL: 'LOCAL'
 } as const;
 
-export type DatabaseSource = typeof DB_SOURCE.NEON | typeof DB_SOURCE.APPWRITE | typeof DB_SOURCE.SUPABASE;
+export type DatabaseSource = typeof DB_SOURCE.CONVEX | typeof DB_SOURCE.NEON | typeof DB_SOURCE.APPWRITE | typeof DB_SOURCE.SUPABASE;
 export type CacheSource = typeof DB_SOURCE.CACHE | typeof DB_SOURCE.LOCAL;
 export type ConnectionSource = DatabaseSource | CacheSource;
 
