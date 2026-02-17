@@ -9,6 +9,7 @@ import { tryConnectConvex, tryConnectNeon, tryConnectAppwrite, tryConnectSupabas
 import { DatabaseAdapter, DatabaseSource as DbAdapterSource, createDatabaseAdapter } from './lib/db-adapter';
 import { APPWRITE_CONFIG } from './lib/appwrite';
 import { useLocalCache } from './hooks/useLocalCache';
+import { ToastProvider } from './components/Toast';
 
 interface TeamData {
   id?: string;
@@ -217,7 +218,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-[#F0F2F5] overflow-hidden">
+    <ToastProvider>
+      <div className="h-screen flex flex-col md:flex-row bg-[#F0F2F5] overflow-hidden">
       <div className="w-full md:w-[480px] h-[50vh] md:h-screen flex flex-col bg-white border-r border-gray-200 z-20 shadow-2xl shrink-0 overflow-y-auto custom-scrollbar">
         <div className="p-8 flex flex-col gap-12">
           <div className="flex items-start justify-between gap-4">
@@ -279,6 +281,7 @@ const App: React.FC = () => {
         </div>
       </div>
     </div>
+    </ToastProvider>
   );
 };
 

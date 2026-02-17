@@ -42,9 +42,12 @@ export const loadSettingsFromSource = async (
       ...defaultConfig,
       title: settings.title || defaultConfig.title,
       subtitle: settings.subtitle || defaultConfig.subtitle,
-      resultsBg: settings.results_bg || defaultConfig.resultsBg,
-      previewBg: settings.preview_bg || defaultConfig.previewBg,
-      victoryBg: settings.victory_bg || defaultConfig.victoryBg,
+      // Charger les images de fond séparément
+      const [resultsBg, previewBg, victoryBg] = await Promise.all([
+        adapter.getBackgroundImage('results'),
+        adapter.getBackgroundImage('preview'),
+        adapter.getBackgroundImage('victory')
+      ]);
       victoryPhotoFocus: (settings.victory_photo_focus_x !== undefined && settings.victory_photo_focus_y !== undefined) 
         ? { x: Number(settings.victory_photo_focus_x), y: Number(settings.victory_photo_focus_y) }
         : defaultConfig.victoryPhotoFocus,

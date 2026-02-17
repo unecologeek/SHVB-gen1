@@ -10,7 +10,8 @@ export const APPWRITE_CONFIG = {
   API_KEY: import.meta.env.VITE_APPWRITE_API_KEY || '',
   DATABASE_ID: import.meta.env.VITE_APPWRITE_DATABASE_ID || 'SHVBdb',
   COLLECTION_TEAMS: import.meta.env.VITE_APPWRITE_COLLECTION_TEAMS || 'teams',
-  COLLECTION_SETTINGS: import.meta.env.VITE_APPWRITE_COLLECTION_SETTINGS || 'settings'
+  COLLECTION_SETTINGS: import.meta.env.VITE_APPWRITE_COLLECTION_SETTINGS || 'settings',
+  COLLECTION_BACKGROUND_IMAGES: import.meta.env.VITE_APPWRITE_COLLECTION_BACKGROUND_IMAGES || 'background_images'
 };
 
 // Client Appwrite (endpoint et project du projet SHVB)

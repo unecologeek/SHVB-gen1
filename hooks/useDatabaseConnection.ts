@@ -70,13 +70,20 @@ export const useDatabaseConnection = (
       );
 
       if (settings) {
+        // Charger les images de fond séparément
+        const [resultsBg, previewBg, victoryBg] = await Promise.all([
+          adapter.getBackgroundImage('results'),
+          adapter.getBackgroundImage('preview'),
+          adapter.getBackgroundImage('victory')
+        ]);
+
         const newConfig: AppConfig = {
           ...defaultConfig,
           title: settings.title || defaultConfig.title,
           subtitle: settings.subtitle || defaultConfig.subtitle,
-          resultsBg: settings.results_bg || defaultConfig.resultsBg,
-          previewBg: settings.preview_bg || defaultConfig.previewBg,
-          victoryBg: settings.victory_bg || defaultConfig.victoryBg,
+          resultsBg: resultsBg || defaultConfig.resultsBg,
+          previewBg: previewBg || defaultConfig.previewBg,
+          victoryBg: victoryBg || defaultConfig.victoryBg,
           mainColor: settings.main_color || defaultConfig.mainColor,
           visualType: (settings.visual_type as any) || defaultConfig.visualType,
           category: settings.category || defaultConfig.category,

@@ -18,9 +18,6 @@ CREATE TABLE IF NOT EXISTS settings (
   id          INTEGER PRIMARY KEY DEFAULT 1,
   title       TEXT,
   subtitle    TEXT,
-  results_bg   TEXT,
-  preview_bg   TEXT,
-  victory_bg   TEXT,
   main_color   TEXT,
   visual_type  TEXT,
   category     TEXT,
@@ -35,3 +32,13 @@ BEGIN
     ALTER TABLE settings ADD CONSTRAINT settings_single_row CHECK (id = 1);
   END IF;
 END $$;
+
+-- Table des images de fond (une par type)
+CREATE TABLE IF NOT EXISTS background_images (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type        TEXT NOT NULL UNIQUE CHECK (type IN ('results', 'preview', 'victory')),
+  image_data  TEXT NOT NULL,
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_background_images_type ON background_images (type);

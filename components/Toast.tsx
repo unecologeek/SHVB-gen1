@@ -52,7 +52,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-3 pointer-events-none w-full max-w-md px-4">
         {toasts.map(toast => (
           <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
         ))}
@@ -122,7 +122,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
 
   return (
     <div
-      className={`${getToastStyles()} ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}
+      className={`${getToastStyles()} ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
       onClick={() => onRemove(toast.id)}
     >
       {getIcon()}

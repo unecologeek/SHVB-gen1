@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase';
 import { createDatabaseAdapter } from '../lib/db-adapter';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';
 import { useLocalCache } from '../hooks/useLocalCache';
+import { useToast } from './Toast';
+import { isConnectionError, extractErrorMessage } from '../lib/error-utils';
 
 interface TeamData {
   id?: string;
@@ -98,6 +100,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
   const [isSyncing, setIsSyncing] = useState(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSyncRef = useRef<{ config: AppConfig; updates: Partial<AppConfig> } | null>(null);
+  const { showToast } = useToast();
   const cache = useLocalCache();
   const localTeam = useMemo(() => availableTeams.find(t => t.is_local), [availableTeams]);
 
@@ -274,9 +277,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     const payload: Record<string, unknown> = {};
     if (updates.title !== undefined) payload.title = updates.title;
     if (updates.subtitle !== undefined) payload.subtitle = updates.subtitle;
-    if (updates.resultsBg !== undefined) payload.results_bg = updates.resultsBg;
-    if (updates.previewBg !== undefined) payload.preview_bg = updates.previewBg;
-    if (updates.victoryBg !== undefined) payload.victory_bg = updates.victoryBg;
+    // Les images de fond sont gérées séparément via setBackgroundImage
     if (updates.victoryPhotoFocus !== undefined) {
       if (updates.victoryPhotoFocus === null || updates.victoryPhotoFocus === undefined) {
         payload.victory_photo_focus_x = null;
@@ -296,11 +297,6 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
 
   const performSync = async (newConfig: AppConfig, updates: Partial<AppConfig>) => {
     if (isSyncing) return;
-    
-    const payload = buildPayloadFromUpdates(updates);
-    if (Object.keys(payload).length === 0) {
-      return;
-    }
 
     // Ne pas synchroniser si la source est CACHE ou LOCAL
     if (activeSource === DB_SOURCE.CACHE || activeSource === DB_SOURCE.LOCAL) {
@@ -311,29 +307,42 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     setSaving(true);
 
     try {
-      if (activeSource === DB_SOURCE.NEON) {
-        const apiBase = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) || '';
-        const res = await fetch(`${apiBase}/api/settings`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error(await res.text());
-        console.log("📤 [NEON] Synchronisation réussie.");
-      } else if (activeSource === DB_SOURCE.APPWRITE && isAppwriteReady()) {
-        await databases.updateDocument(APPWRITE_CONFIG.DATABASE_ID, APPWRITE_CONFIG.COLLECTION_SETTINGS, 'default', payload);
-        console.log("📤 [APPWRITE] Synchronisation réussie.");
-      } else if (activeSource === DB_SOURCE.SUPABASE && supabase) {
-        const { error } = await supabase.from('settings').upsert({ id: 1, ...payload }, { onConflict: 'id' });
-        if (error) throw error;
-        console.log("📤 [SUPABASE] Synchronisation réussie.");
-      } else if (activeSource === DB_SOURCE.CONVEX) {
-        const adapter = createDatabaseAdapter('CONVEX');
-        await adapter.updateSettings(payload);
-        console.log("📤 [CONVEX] Synchronisation réussie.");
+      const adapter = createDatabaseAdapter(activeSource);
+
+      // Gérer les images de fond séparément
+      if (updates.resultsBg !== undefined) {
+        await adapter.setBackgroundImage('results', updates.resultsBg);
       }
+      if (updates.previewBg !== undefined) {
+        await adapter.setBackgroundImage('preview', updates.previewBg);
+      }
+      if (updates.victoryBg !== undefined) {
+        await adapter.setBackgroundImage('victory', updates.victoryBg);
+      }
+
+      // Gérer les autres paramètres
+      const payload = buildPayloadFromUpdates(updates);
+      if (Object.keys(payload).length > 0) {
+        await adapter.updateSettings(payload);
+      }
+
+      console.log(`📤 [${activeSource}] Synchronisation réussie.`);
     } catch (e: any) {
       console.error(`⚠️ [${activeSource}] Échec synchronisation:`, {
         message: e?.message || e?.error || 'Erreur inconnue',
         code: e?.code,
         status: e?.status
       });
+
+      // Si ce n'est PAS une erreur de connexion, afficher une notification
+      if (!isConnectionError(e)) {
+        const errorMessage = extractErrorMessage(e);
+        showToast(
+          `Problème lors de l'enregistrement : ${errorMessage}`,
+          'error',
+          8000
+        );
+      }
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSaving(false), 600);
@@ -530,9 +539,15 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
         <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Identité Visuelle</h3>
         <div className="bg-blue-50/50 p-10 rounded-[56px] border border-blue-100 flex flex-col gap-10 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between gap-6 relative z-10">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <label className="text-sm font-black text-blue-900 uppercase tracking-widest">Fond du visuel</label>
-              <span className="text-xs text-blue-600/70 font-bold uppercase">PNG/JPG Haute Qualité</span>
+              <span className="text-xs text-blue-600/70 font-bold uppercase">Max 0.9 Mo – format PNG</span>
+              <span className="text-[11px] text-blue-600/80 font-bold">
+                Réduire la taille :{' '}
+                <a href="https://compresspng.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-700">compresspng.com</a>
+                {' · '}
+                <a href="https://www.iloveimg.com/compress-image" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-700">iloveimg.com</a>
+              </span>
             </div>
             <div className="w-16 h-16 rounded-[24px] bg-blue-600 flex items-center justify-center text-white cursor-pointer relative shadow-xl hover:scale-110 active:scale-90 transition-transform">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>

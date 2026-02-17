@@ -3,6 +3,7 @@ import { supabase, handleSupabaseError } from './supabase';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from './appwrite';
 import { getConvexClient, isConvexReady } from './convex';
 import { api } from '../convex/_generated/api';
+import { BackgroundImageType } from '../convex/backgroundImages';
 import { AppConfig } from '../types';
 import { isCORSError } from './retry';
 
@@ -23,9 +24,6 @@ export interface SettingsData {
   id?: string | number;
   title?: string;
   subtitle?: string;
-  results_bg?: string;
-  preview_bg?: string;
-  victory_bg?: string;
   victory_photo_focus_x?: number | null;
   victory_photo_focus_y?: number | null;
   main_color?: string;
@@ -34,6 +32,8 @@ export interface SettingsData {
   match_date?: string;
   location?: string;
 }
+
+export type BackgroundImageType = 'results' | 'preview' | 'victory';
 
 export interface DatabaseAdapter {
   source: DatabaseSource;
@@ -48,6 +48,10 @@ export interface DatabaseAdapter {
   // Paramètres
   getSettings(): Promise<SettingsData | null>;
   updateSettings(settings: Partial<SettingsData>): Promise<SettingsData>;
+  
+  // Images de fond
+  getBackgroundImage(type: BackgroundImageType): Promise<string | null>;
+  setBackgroundImage(type: BackgroundImageType, imageData: string): Promise<void>;
   
   // Vérification de santé
   healthCheck(): Promise<boolean>;
@@ -217,9 +221,6 @@ export class AppwriteAdapter implements DatabaseAdapter {
         id: doc.$id,
         title: doc.title,
         subtitle: doc.subtitle,
-        results_bg: doc.results_bg,
-        preview_bg: doc.preview_bg,
-        victory_bg: doc.victory_bg,
         main_color: doc.main_color,
         visual_type: doc.visual_type,
         category: doc.category,
@@ -262,9 +263,6 @@ export class AppwriteAdapter implements DatabaseAdapter {
         id: res.$id,
         title: res.title,
         subtitle: res.subtitle,
-        results_bg: res.results_bg,
-        preview_bg: res.preview_bg,
-        victory_bg: res.victory_bg,
         main_color: res.main_color,
         visual_type: res.visual_type,
         category: res.category,
@@ -275,6 +273,64 @@ export class AppwriteAdapter implements DatabaseAdapter {
       console.error('[APPWRITE] Erreur lors de la mise à jour des paramètres:', error);
       throw {
         message: error.message || 'Erreur lors de la mise à jour des paramètres',
+        code: error.code || 'UNKNOWN'
+      };
+    }
+  }
+
+  async getBackgroundImage(type: BackgroundImageType): Promise<string | null> {
+    if (!isAppwriteReady()) {
+      throw new Error('Configuration Appwrite incomplète');
+    }
+
+    try {
+      const res = await databases.listDocuments(
+        APPWRITE_CONFIG.DATABASE_ID,
+        APPWRITE_CONFIG.COLLECTION_BACKGROUND_IMAGES,
+        [`type=${type}`]
+      );
+      return res.documents[0]?.image_data || null;
+    } catch (error: any) {
+      if (error.code === 404) {
+        return null;
+      }
+      console.error('[APPWRITE] Erreur lors de la récupération de l\'image de fond:', error);
+      return null;
+    }
+  }
+
+  async setBackgroundImage(type: BackgroundImageType, imageData: string): Promise<void> {
+    if (!isAppwriteReady()) {
+      throw new Error('Configuration Appwrite incomplète');
+    }
+
+    try {
+      // Chercher l'image existante
+      const res = await databases.listDocuments(
+        APPWRITE_CONFIG.DATABASE_ID,
+        APPWRITE_CONFIG.COLLECTION_BACKGROUND_IMAGES,
+        [`type=${type}`]
+      );
+
+      if (res.documents.length > 0) {
+        await databases.updateDocument(
+          APPWRITE_CONFIG.DATABASE_ID,
+          APPWRITE_CONFIG.COLLECTION_BACKGROUND_IMAGES,
+          res.documents[0].$id,
+          { image_data: imageData }
+        );
+      } else {
+        await databases.createDocument(
+          APPWRITE_CONFIG.DATABASE_ID,
+          APPWRITE_CONFIG.COLLECTION_BACKGROUND_IMAGES,
+          'unique()',
+          { type, image_data: imageData }
+        );
+      }
+    } catch (error: any) {
+      console.error('[APPWRITE] Erreur lors de la sauvegarde de l\'image de fond:', error);
+      throw {
+        message: error.message || 'Erreur lors de la sauvegarde de l\'image de fond',
         code: error.code || 'UNKNOWN'
       };
     }
@@ -489,6 +545,44 @@ export class SupabaseAdapter implements DatabaseAdapter {
     }
   }
 
+  async getBackgroundImage(type: BackgroundImageType): Promise<string | null> {
+    this.guard();
+    try {
+      const { data, error } = await supabase!
+        .from('background_images')
+        .select('image_data')
+        .eq('type', type)
+        .maybeSingle();
+
+      if (error) {
+        const handledError = handleSupabaseError(error, 'getBackgroundImage');
+        throw handledError || error;
+      }
+
+      return data?.image_data || null;
+    } catch (error: any) {
+      console.error('[SUPABASE] Erreur lors de la récupération de l\'image de fond:', error);
+      return null;
+    }
+  }
+
+  async setBackgroundImage(type: BackgroundImageType, imageData: string): Promise<void> {
+    this.guard();
+    try {
+      const { error } = await supabase!
+        .from('background_images')
+        .upsert({ type, image_data: imageData }, { onConflict: 'type' });
+
+      if (error) {
+        const handledError = handleSupabaseError(error, 'setBackgroundImage');
+        throw handledError || error;
+      }
+    } catch (error: any) {
+      console.error('[SUPABASE] Erreur lors de la sauvegarde de l\'image de fond:', error);
+      throw error;
+    }
+  }
+
   async healthCheck(): Promise<boolean> {
     if (!supabase) return false;
     try {
@@ -561,9 +655,6 @@ export class ConvexAdapter implements DatabaseAdapter {
     return {
       title: doc.title,
       subtitle: doc.subtitle,
-      results_bg: doc.results_bg,
-      preview_bg: doc.preview_bg,
-      victory_bg: doc.victory_bg,
       victory_photo_focus_x: (doc as any).victory_photo_focus_x,
       victory_photo_focus_y: (doc as any).victory_photo_focus_y,
       main_color: doc.main_color,
@@ -581,9 +672,6 @@ export class ConvexAdapter implements DatabaseAdapter {
     return {
       title: doc.title,
       subtitle: doc.subtitle,
-      results_bg: doc.results_bg,
-      preview_bg: doc.preview_bg,
-      victory_bg: doc.victory_bg,
       victory_photo_focus_x: (doc as any).victory_photo_focus_x,
       victory_photo_focus_y: (doc as any).victory_photo_focus_y,
       main_color: doc.main_color,
@@ -592,6 +680,14 @@ export class ConvexAdapter implements DatabaseAdapter {
       match_date: doc.match_date,
       location: doc.location,
     };
+  }
+
+  async getBackgroundImage(type: BackgroundImageType): Promise<string | null> {
+    return await this.client.query(api.backgroundImages.get, { type });
+  }
+
+  async setBackgroundImage(type: BackgroundImageType, imageData: string): Promise<void> {
+    await this.client.mutation(api.backgroundImages.set, { type, image_data: imageData });
   }
 
   async healthCheck(): Promise<boolean> {
@@ -674,6 +770,28 @@ export class NeonAdapter implements DatabaseAdapter {
     const json = (await res.json()) as { data?: SettingsData; error?: string };
     if (!res.ok) throw { message: json.error || res.statusText, code: res.status };
     return json.data!;
+  }
+
+  async getBackgroundImage(type: BackgroundImageType): Promise<string | null> {
+    try {
+      const res = await this.api(`/background-images/${type}`);
+      if (res.status === 404) return null;
+      const json = (await res.json()) as { data?: string; error?: string };
+      if (!res.ok) throw { message: json.error || res.statusText, code: res.status };
+      return json.data || null;
+    } catch (error: any) {
+      console.error('[NEON] Erreur lors de la récupération de l\'image de fond:', error);
+      return null;
+    }
+  }
+
+  async setBackgroundImage(type: BackgroundImageType, imageData: string): Promise<void> {
+    const res = await this.api(`/background-images/${type}`, {
+      method: 'PUT',
+      body: JSON.stringify({ image_data: imageData })
+    });
+    const json = (await res.json()) as { error?: string };
+    if (!res.ok) throw { message: json.error || res.statusText, code: res.status };
   }
 
   async healthCheck(): Promise<boolean> {

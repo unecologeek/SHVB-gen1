@@ -10,9 +10,6 @@ export default defineSchema({
   settings: defineTable({
     title: v.optional(v.string()),
     subtitle: v.optional(v.string()),
-    results_bg: v.optional(v.string()),
-    preview_bg: v.optional(v.string()),
-    victory_bg: v.optional(v.string()),
     victory_photo_focus_x: v.optional(v.number()),
     victory_photo_focus_y: v.optional(v.number()),
     main_color: v.optional(v.string()),
@@ -21,4 +18,8 @@ export default defineSchema({
     match_date: v.optional(v.string()),
     location: v.optional(v.string()),
   }),
+  background_images: defineTable({
+    type: v.string(), // 'results', 'preview', 'victory'
+    image_data: v.string(), // base64 encoded image
+  }).index("by_type", ["type"]),
 });
