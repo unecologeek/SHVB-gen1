@@ -68,7 +68,8 @@ function getAivenPool(): pg.Pool | null {
   if (!aivenPool) {
     aivenPool = new Pool({
       connectionString: url,
-      ssl: { rejectUnauthorized: true },
+      // Aiven utilise un certificat que Node ne truste pas par défaut en serverless ; connexion toujours chiffrée (TLS).
+      ssl: { rejectUnauthorized: false },
     });
   }
   return aivenPool;
