@@ -122,7 +122,7 @@ INSERT INTO settings (id, title, subtitle) VALUES (1, NULL, NULL) ON CONFLICT (i
 ## Déploiement
 
 - **Netlify** : le projet contient un [netlify.toml](netlify.toml) (build `npm run build`, répertoire de publication `dist`). Connecter le dépôt à Netlify pour déployer le front.
-- **Vercel + Convex** : la commande de build dans [vercel.json](vercel.json) définit déjà `CONVEX_TMPDIR=.convex-tmp` pour éviter cette erreur ; ne pas surcharger la Build Command dans le dashboard Vercel (ou utiliser la même : `CONVEX_TMPDIR=.convex-tmp npx convex deploy --cmd 'npm run build'`).
+- **Vercel + Convex** : dans [vercel.json](vercel.json), la commande de build est `npm run build && mkdir -p .convex-tmp && npx convex deploy` (build puis déploiement Convex, sans `--cmd`). Garder la variable d’environnement `CONVEX_TMPDIR=.convex-tmp` dans le projet Vercel.
 - **API (Neon)** : si vous utilisez l’API Vercel pour Neon, déployer les routes sous `api/` sur Vercel et configurer `shvb_DATABASE_URL` (ou `DATABASE_URL`) dans les variables d’environnement du projet.
 
 ## Références
