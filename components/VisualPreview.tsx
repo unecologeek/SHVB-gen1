@@ -283,7 +283,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           ))}
         </div>
 
-        <div className="w-full flex flex-col items-center shrink-0" style={{ paddingTop: isCompact ? '28px' : '40px', paddingBottom: isCompact ? '36px' : '44px' }}>
+        <div className="w-full flex flex-col items-center shrink-0" style={{ paddingTop: isCompact ? '28px' : '20px', paddingBottom: isCompact ? '56px' : '44px' }}>
           {config.showSlideIndicator ? (
             <div className="flex items-center justify-center gap-3 py-5 min-h-[52px]">
               {Array.from({ length: config.totalSlides }).map((_, i) => (
