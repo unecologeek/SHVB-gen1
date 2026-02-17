@@ -38,16 +38,20 @@ export const loadSettingsFromSource = async (
       return { config: defaultConfig, adapter };
     }
 
+    // Charger les images de fond séparément
+    const [resultsBg, previewBg, victoryBg] = await Promise.all([
+      adapter.getBackgroundImage('results'),
+      adapter.getBackgroundImage('preview'),
+      adapter.getBackgroundImage('victory')
+    ]);
+
     const config: AppConfig = {
       ...defaultConfig,
       title: settings.title || defaultConfig.title,
       subtitle: settings.subtitle || defaultConfig.subtitle,
-      // Charger les images de fond séparément
-      const [resultsBg, previewBg, victoryBg] = await Promise.all([
-        adapter.getBackgroundImage('results'),
-        adapter.getBackgroundImage('preview'),
-        adapter.getBackgroundImage('victory')
-      ]);
+      resultsBg: resultsBg || defaultConfig.resultsBg,
+      previewBg: previewBg || defaultConfig.previewBg,
+      victoryBg: victoryBg || defaultConfig.victoryBg,
       victoryPhotoFocus: (settings.victory_photo_focus_x !== undefined && settings.victory_photo_focus_y !== undefined) 
         ? { x: Number(settings.victory_photo_focus_x), y: Number(settings.victory_photo_focus_y) }
         : defaultConfig.victoryPhotoFocus,
