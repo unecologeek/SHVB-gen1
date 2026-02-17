@@ -65,13 +65,15 @@ export const validateAndLoadImage = async (
       };
     }
 
-    // Compresser si demandé
+    // Compresser si demandé (PNG/WebP/GIF → sortie PNG pour préserver la transparence)
     let dataUrl: string;
     if (options?.compress) {
+      const preserveAlpha = ['image/png', 'image/webp', 'image/gif'].includes(file.type);
       dataUrl = await compressImage(img, {
         maxWidth: options.maxWidth || MAX_DIMENSION,
         maxHeight: options.maxHeight || MAX_DIMENSION,
-        quality: options.quality || 0.8
+        quality: options.quality || 0.8,
+        format: preserveAlpha ? 'image/png' : 'image/jpeg'
       });
     } else {
       // Charger sans compression
@@ -126,11 +128,12 @@ const fileToDataURL = (file: File): Promise<string> => {
 };
 
 /**
- * Compresse une image avec redimensionnement optionnel
+ * Compresse une image avec redimensionnement optionnel.
+ * Format PNG préserve la transparence ; JPEG pour les photos.
  */
 const compressImage = (
   img: HTMLImageElement,
-  options: { maxWidth: number; maxHeight: number; quality: number }
+  options: { maxWidth: number; maxHeight: number; quality: number; format: 'image/png' | 'image/jpeg' }
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -152,10 +155,12 @@ const compressImage = (
     canvas.width = width;
     canvas.height = height;
 
-    // Dessiner l'image sur le canvas
+    // Pas de fillRect : le canvas reste transparent, drawImage préserve l'alpha
     ctx.drawImage(img, 0, 0, width, height);
 
-    // Convertir en DataURL avec compression
+    const mime = options.format;
+    const quality = mime === 'image/jpeg' ? options.quality : undefined;
+
     canvas.toBlob(
       (blob) => {
         if (!blob) {
@@ -167,8 +172,8 @@ const compressImage = (
         reader.onerror = () => reject(new Error('Erreur lors de la lecture du blob'));
         reader.readAsDataURL(blob);
       },
-      'image/jpeg', // Utiliser JPEG pour la compression
-      options.quality
+      mime,
+      quality
     );
   });
 };

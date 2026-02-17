@@ -63,7 +63,7 @@ const AutocompleteTeamSelect: React.FC<AutocompleteProps> = ({ label, value, tea
           <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
             {filteredTeams.length > 0 ? filteredTeams.map((team) => (
               <button key={team.id} onClick={() => { onSelect(team); setIsOpen(false); }} className="w-full flex items-center gap-4 p-4 hover:bg-orange-50 transition-colors text-left group">
-                <div className="w-14 h-14 bg-white rounded-2xl p-2 border border-gray-100 shrink-0 shadow-sm relative">
+                <div className="w-14 h-14 shrink-0 relative">
                   <img src={team.logo} alt="" className="w-full h-full object-contain" />
                   {team.is_local && <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-600 border-2 border-white rounded-full"></div>}
                 </div>

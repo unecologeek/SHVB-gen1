@@ -247,7 +247,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
             <div className="max-h-[220px] overflow-y-auto pr-3 custom-scrollbar flex flex-col gap-3">
               {pendingTeams.map(t => (
                 <div key={t.tempId} className="flex items-center gap-4 bg-gray-800 p-3 rounded-2xl border border-white/5 shadow-sm">
-                  <img src={t.logo} className="w-10 h-10 object-contain bg-white rounded-xl p-1.5 shadow-sm" alt="" />
+                  <img src={t.logo} className="w-10 h-10 object-contain" alt="" />
                   <input 
                     type="text" 
                     value={t.name}
@@ -288,7 +288,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
                   <div className="relative shrink-0">
                     {editingId === team.id && editValues ? (
                       <div className="relative group/edit-logo cursor-pointer overflow-hidden rounded-2xl w-12 h-12 border-2 border-blue-500 shadow-lg">
-                        <img src={editValues.logo} className="w-full h-full object-contain bg-white p-2" alt="" />
+                        <img src={editValues.logo} className="w-full h-full object-contain" alt="" />
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/edit-logo:opacity-100 transition-opacity">
                           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         </div>
@@ -296,7 +296,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
                       </div>
                     ) : (
                       <>
-                        <img src={team.logo} className={`w-12 h-12 object-contain bg-white rounded-2xl p-2 shrink-0 border transition-all ${team.is_local ? 'border-orange-500 scale-105 shadow-md' : 'border-white/10'}`} alt="" />
+                        <img src={team.logo} className={`w-12 h-12 object-contain shrink-0 transition-all ${team.is_local ? 'scale-105' : ''}`} alt="" />
                         {team.is_local && <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-500 border-4 border-gray-900 rounded-full animate-pulse"></div>}
                       </>
                     )}

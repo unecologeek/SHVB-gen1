@@ -238,7 +238,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
                 style={{ borderRadius: isCompact ? '50px' : '60px', height: isCompact ? '102px' : '120px' }}
               >
                 <div className="flex items-center gap-4 w-[330px] pr-4">
-                  <div className="bg-white flex items-center justify-center p-2 shadow-sm shrink-0 overflow-hidden border border-gray-100" style={{ borderRadius: isCompact ? '36px' : '44px', width: isCompact ? '72px' : '88px', height: isCompact ? '72px' : '88px' }}>
+                  <div className="flex items-center justify-center shrink-0 overflow-hidden" style={{ width: isCompact ? '72px' : '88px', height: isCompact ? '72px' : '88px' }}>
                     {match.team1.logo && <img src={match.team1.logo} alt="" className="w-full h-full object-contain" onError={handleImageError} />}
                   </div>
                   <div className="flex-1 overflow-hidden">
@@ -263,7 +263,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
                       {match.team2.name}
                     </span>
                   </div>
-                  <div className="bg-white flex items-center justify-center p-2 shadow-sm shrink-0 overflow-hidden border border-gray-100" style={{ borderRadius: isCompact ? '36px' : '44px', width: isCompact ? '72px' : '88px', height: isCompact ? '72px' : '88px' }}>
+                  <div className="flex items-center justify-center shrink-0 overflow-hidden" style={{ width: isCompact ? '72px' : '88px', height: isCompact ? '72px' : '88px' }}>
                     {match.team2.logo && <img src={match.team2.logo} alt="" className="w-full h-full object-contain" onError={handleImageError} />}
                   </div>
                 </div>
