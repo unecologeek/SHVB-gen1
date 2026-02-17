@@ -122,11 +122,12 @@ INSERT INTO settings (id, title, subtitle) VALUES (1, NULL, NULL) ON CONFLICT (i
 ## Déploiement
 
 - **Netlify** : le projet contient un [netlify.toml](netlify.toml) (build `npm run build`, répertoire de publication `dist`). Connecter le dépôt à Netlify pour déployer le front.
-- **Vercel + Convex** : dans [vercel.json](vercel.json), la commande de build est `npm run build && mkdir -p .convex-tmp && npx convex deploy` (build puis déploiement Convex, sans `--cmd`). Garder la variable d’environnement `CONVEX_TMPDIR=.convex-tmp` dans le projet Vercel.
+- **Vercel** : dans [vercel.json](vercel.json), la commande de build est **`npm run build`** uniquement. **Convex ne se déploie pas sur Vercel** : il faut déployer Convex à part depuis ta machine avec `npx convex deploy`. Voir [CONVEX_DEPLOY.md](CONVEX_DEPLOY.md) pour les instructions.
 - **API (Neon)** : si vous utilisez l’API Vercel pour Neon, déployer les routes sous `api/` sur Vercel et configurer `shvb_DATABASE_URL` (ou `DATABASE_URL`) dans les variables d’environnement du projet.
 
 ## Références
 
 - Variables d’environnement : [.env.example](.env.example) et section [Variables d’environnement par fournisseur BDD](#variables-denvironnement-par-fournisseur-bdd) ci‑dessus
+- Déploiement Convex (hors Vercel) : [CONVEX_DEPLOY.md](CONVEX_DEPLOY.md)
 - Schéma Neon complet : [scripts/neon-schema.sql](scripts/neon-schema.sql)
 - Configuration RLS Supabase : [SUPABASE_RLS_SETUP.md](SUPABASE_RLS_SETUP.md) (si vous utilisez Supabase)

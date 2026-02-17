@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build && mkdir -p .convex-tmp && npx convex deploy",
+  "buildCommand": "npm run build",
   "functions": {
     "api/teams/index.ts": {"includeFiles": "api/teams/shared.ts"},
     "api/teams/[id].ts": {"includeFiles": "api/teams/shared.ts"},
