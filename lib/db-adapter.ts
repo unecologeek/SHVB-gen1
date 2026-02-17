@@ -3,7 +3,6 @@ import { supabase, handleSupabaseError } from './supabase';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from './appwrite';
 import { getConvexClient, isConvexReady } from './convex';
 import { api } from '../convex/_generated/api';
-import { BackgroundImageType } from '../convex/backgroundImages';
 import { AppConfig } from '../types';
 import { isCORSError } from './retry';
 
