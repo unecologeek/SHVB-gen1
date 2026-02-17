@@ -207,13 +207,13 @@ const App: React.FC = () => {
     <div className="h-screen flex flex-col md:flex-row bg-[#F0F2F5] overflow-hidden">
       <div className="w-full md:w-[480px] h-[50vh] md:h-screen flex flex-col bg-white border-r border-gray-200 z-20 shadow-2xl shrink-0 overflow-y-auto custom-scrollbar">
         <div className="p-8 flex flex-col gap-12">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0 flex-1">
               <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center shadow-xl transform rotate-3 shrink-0">
                  <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
               </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <span className="text-2xl font-[900] text-gray-900 uppercase italic tracking-tighter leading-tight block">Studio</span>
+              <div className="flex flex-col justify-center min-w-0 flex-1">
+                <span className="text-2xl font-[900] text-gray-900 uppercase italic tracking-tighter leading-tight block break-words">Studio</span>
                 <span className="text-lg font-[800] text-gray-600 uppercase tracking-tight leading-tight block break-words" title={localTeam?.name || 'CLUB'}>{localTeam?.name || 'CLUB'}</span>
               </div>
             </div>
