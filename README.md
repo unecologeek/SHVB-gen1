@@ -1,6 +1,17 @@
 # SHVB – Générateur de visuels et résultats
 
-Application de génération de visuels (résultats de matchs, affiches, victoire) pour le club SHVB Saint-Herblain Volley-Ball. Les données peuvent être stockées sur **Convex**, **Neon** (PostgreSQL), **Appwrite**, **Supabase** ou en cache local. L’ordre de tentative de connexion est : Convex → Neon → Appwrite → Supabase → cache local.
+## Description
+
+**Studio SHVB** est une application web de création et d’export de visuels pour le club **Saint-Herblain Volley-Ball** (SHVB). Elle permet de générer des images prêtes à publier pour les résultats de matchs, les affiches de rencontre et les visuels « victoire », avec personnalisation des textes, couleurs et fonds. Les données (équipes, logos, paramètres d’affichage) sont synchronisées avec une base de données cloud ou utilisées en local selon la configuration.
+
+## Fonctionnalités
+
+- **Trois types de visuels** : **Résultats** (écran de scores), **Affiche** (avant-match avec catégorie, date, lieu), **Victoire** (visuel de fin de match avec photo optionnelle).
+- **Gestion des équipes et logos** : import de clubs (nom + logo), désignation du club « local », recherche et sélection dans les listes pour composer les matchs affichés.
+- **Personnalisation** : titres, sous-titres, couleurs principales, images de fond par type de visuel (résultats, affiche, victoire), date et lieu du match.
+- **Export** : téléchargement du visuel en PNG haute qualité (résolution adaptée au type : 1080×1080 ou 1080×1920 pour la victoire).
+- **Multi-sources de données** : connexion automatique à **Convex**, **Neon** (PostgreSQL via API), **Appwrite** ou **Supabase** ; à défaut, utilisation du cache navigateur ou du fichier local `teams.json`. L’ordre de tentative est : Convex → Neon → Appwrite → Supabase → cache local.
+- **Synchronisation** : les modifications (paramètres, équipes) sont enregistrées sur la source active et mises en cache local.
 
 ## Lancer en local
 
