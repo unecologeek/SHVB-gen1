@@ -2,6 +2,7 @@
 import { DatabaseAdapter, DatabaseSource, tryConnectDatabase, createDatabaseAdapter, TeamData, SettingsData } from './db-adapter';
 import { AppConfig } from '../types';
 import { withRetry, isRetryableError } from './retry';
+import { isConvexReady } from './convex';
 
 /**
  * Tente de charger les paramètres depuis une source de base de données
@@ -119,15 +120,25 @@ export const tryConnectSupabase = async (
 export const tryConnectConvex = async (
   defaultConfig: AppConfig
 ): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
-  const result = await loadSettingsFromSource('CONVEX', defaultConfig);
-  if (!result) return null;
+  if (!isConvexReady()) {
+    console.warn("⚠️ [CONVEX] VITE_CONVEX_URL non définie dans .env.local - passage à la source suivante");
+    return null;
+  }
+  
+  try {
+    const result = await loadSettingsFromSource('CONVEX', defaultConfig);
+    if (!result) return null;
 
-  const teams = await loadTeamsFromSource(result.adapter);
-  return {
-    config: result.config,
-    teams,
-    adapter: result.adapter
-  };
+    const teams = await loadTeamsFromSource(result.adapter);
+    return {
+      config: result.config,
+      teams,
+      adapter: result.adapter
+    };
+  } catch (error: any) {
+    console.error("❌ [CONVEX] Erreur de connexion:", error?.message || error);
+    return null;
+  }
 };
 
 /**

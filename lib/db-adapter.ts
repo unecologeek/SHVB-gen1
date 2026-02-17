@@ -1,7 +1,7 @@
 
 import { supabase, handleSupabaseError } from './supabase';
 import { databases, APPWRITE_CONFIG, isAppwriteReady } from './appwrite';
-import { convexClient, isConvexReady } from './convex';
+import { getConvexClient, isConvexReady } from './convex';
 import { api } from '../convex/_generated/api';
 import { AppConfig } from '../types';
 import { isCORSError } from './retry';
@@ -509,8 +509,11 @@ export class ConvexAdapter implements DatabaseAdapter {
   source: DatabaseSource = 'CONVEX';
 
   private get client() {
-    if (!convexClient || !isConvexReady()) throw new Error('Convex non configuré (VITE_CONVEX_URL)');
-    return convexClient;
+    const client = getConvexClient();
+    if (!client || !isConvexReady()) {
+      throw new Error('Convex non configuré : définissez VITE_CONVEX_URL dans .env.local (ex: https://xxx.convex.cloud)');
+    }
+    return client;
   }
 
   async getTeams(): Promise<TeamData[]> {
