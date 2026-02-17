@@ -1,8 +1,5 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSql } from '../settings/shared';
-
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { withCors, jsonResponse, getSql } from '../settings/shared';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { withCors, jsonResponse, getSql } from '../settings/shared.js';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   return withCors(req, res, async () => {
