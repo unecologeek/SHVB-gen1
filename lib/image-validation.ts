@@ -1,7 +1,7 @@
 
 // Configuration de validation des images
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/x-png', 'image/webp', 'image/gif'];
 const MAX_DIMENSION = 4096; // Maximum 4096px pour éviter les images trop grandes
 
 export interface ImageValidationResult {
@@ -68,7 +68,8 @@ export const validateAndLoadImage = async (
     // Compresser si demandé (PNG/WebP/GIF → sortie PNG pour préserver la transparence)
     let dataUrl: string;
     if (options?.compress) {
-      const preserveAlpha = ['image/png', 'image/webp', 'image/gif'].includes(file.type);
+      const isPngLike = /\.png$/i.test(file.name) || ['image/png', 'image/x-png'].includes(file.type);
+      const preserveAlpha = isPngLike || ['image/webp', 'image/gif'].includes(file.type);
       dataUrl = await compressImage(img, {
         maxWidth: options.maxWidth || MAX_DIMENSION,
         maxHeight: options.maxHeight || MAX_DIMENSION,
@@ -155,7 +156,8 @@ const compressImage = (
     canvas.width = width;
     canvas.height = height;
 
-    // Pas de fillRect : le canvas reste transparent, drawImage préserve l'alpha
+    // Vider le canvas en transparent (évite fond noir) puis dessiner l'image avec son alpha
+    ctx.clearRect(0, 0, width, height);
     ctx.drawImage(img, 0, 0, width, height);
 
     const mime = options.format;
