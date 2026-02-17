@@ -95,6 +95,9 @@ interface Props {
 const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, availableTeams, victoryPhoto, setVictoryPhoto, activeSource }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSyncRef = useRef<{ config: AppConfig; updates: Partial<AppConfig> } | null>(null);
   const cache = useLocalCache();
   const localTeam = useMemo(() => availableTeams.find(t => t.is_local), [availableTeams]);
 
@@ -149,11 +152,122 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
       }
 
       setVictoryPhoto(result.dataUrl);
+      // Initialiser le focus au centre si pas encore défini
+      if (!config.victoryPhotoFocus) {
+        handleConfigUpdate({ victoryPhotoFocus: { x: 50, y: 50 } });
+      }
     } catch (error: any) {
       showImageValidationError(error.message || 'Erreur lors du chargement de l\'image');
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  // Composant de sélection de focus pour la photo de victoire
+  const VictoryPhotoFocusSelector: React.FC<{ photo: string; focus?: { x: number; y: number }; onFocusChange: (focus: { x: number; y: number }) => void }> = ({ photo, focus, onFocusChange }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const imageRef = useRef<HTMLImageElement>(null);
+    const [isDraggingCircle, setIsDraggingCircle] = useState(false);
+    const [currentFocus, setCurrentFocus] = useState<{ x: number; y: number }>(focus ?? { x: 50, y: 50 });
+
+    useEffect(() => {
+      if (focus !== undefined) {
+        setCurrentFocus(focus ?? { x: 50, y: 50 });
+      }
+    }, [focus]);
+
+    const calculateFocusFromPosition = useCallback((clientX: number, clientY: number) => {
+      if (!containerRef.current || !imageRef.current) return null;
+
+      const container = containerRef.current;
+      const image = imageRef.current;
+      const rect = container.getBoundingClientRect();
+      
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      const imageRect = image.getBoundingClientRect();
+      const imageLeft = imageRect.left - rect.left;
+      const imageTop = imageRect.top - rect.top;
+      const imageWidth = imageRect.width;
+      const imageHeight = imageRect.height;
+
+      if (x < imageLeft || x > imageLeft + imageWidth || y < imageTop || y > imageTop + imageHeight) {
+        return null;
+      }
+
+      const relativeX = ((x - imageLeft) / imageWidth) * 100;
+      const relativeY = ((y - imageTop) / imageHeight) * 100;
+
+      return {
+        x: Math.max(0, Math.min(100, relativeX)),
+        y: Math.max(0, Math.min(100, relativeY))
+      };
+    }, []);
+
+    const handleContainerMouseDown = (e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).closest('.focus-circle')) return;
+      const newFocus = calculateFocusFromPosition(e.clientX, e.clientY);
+      if (newFocus) {
+        setCurrentFocus(newFocus);
+        onFocusChange(newFocus);
+      }
+    };
+
+    const handleCircleMouseDown = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsDraggingCircle(true);
+    };
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+      if (!isDraggingCircle || !containerRef.current || !imageRef.current) return;
+
+      const newFocus = calculateFocusFromPosition(e.clientX, e.clientY);
+      if (newFocus) {
+        setCurrentFocus(newFocus);
+        onFocusChange(newFocus);
+      }
+    }, [isDraggingCircle, calculateFocusFromPosition, onFocusChange]);
+
+    const handleMouseUp = useCallback(() => {
+      setIsDraggingCircle(false);
+    }, []);
+
+    useEffect(() => {
+      if (isDraggingCircle) {
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        return () => {
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+      }
+    }, [isDraggingCircle, handleMouseMove, handleMouseUp]);
+
+    return (
+      <div 
+        ref={containerRef}
+        className="relative w-full max-h-[400px] bg-gray-50 rounded-[40px] overflow-hidden border-2 border-dashed border-gray-200 shadow-inner cursor-crosshair"
+        onMouseDown={handleContainerMouseDown}
+      >
+        <img 
+          ref={imageRef}
+          src={photo} 
+          alt="" 
+          className="w-full h-auto object-contain pointer-events-none"
+          draggable={false}
+        />
+        <div 
+          className="focus-circle absolute w-[60px] h-[60px] border-4 border-orange-600 rounded-full cursor-move shadow-lg bg-white/20 backdrop-blur-sm z-10"
+          style={{ 
+            left: `${currentFocus.x}%`, 
+            top: `${currentFocus.y}%`, 
+            transform: 'translate(-50%, -50%)'
+          }}
+          onMouseDown={handleCircleMouseDown}
+        />
+      </div>
+    );
   };
 
   const buildPayloadFromUpdates = (updates: Partial<AppConfig>): Record<string, unknown> => {
@@ -163,6 +277,15 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     if (updates.resultsBg !== undefined) payload.results_bg = updates.resultsBg;
     if (updates.previewBg !== undefined) payload.preview_bg = updates.previewBg;
     if (updates.victoryBg !== undefined) payload.victory_bg = updates.victoryBg;
+    if (updates.victoryPhotoFocus !== undefined) {
+      if (updates.victoryPhotoFocus === null || updates.victoryPhotoFocus === undefined) {
+        payload.victory_photo_focus_x = null;
+        payload.victory_photo_focus_y = null;
+      } else {
+        payload.victory_photo_focus_x = updates.victoryPhotoFocus.x;
+        payload.victory_photo_focus_y = updates.victoryPhotoFocus.y;
+      }
+    }
     if (updates.mainColor !== undefined) payload.main_color = updates.mainColor;
     if (updates.visualType !== undefined) payload.visual_type = updates.visualType;
     if (updates.category !== undefined) payload.category = updates.category;
@@ -171,75 +294,81 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     return payload;
   };
 
-  const sync = async (newConfig: AppConfig, updates: Partial<AppConfig>) => {
-    setSaving(true);
+  const performSync = async (newConfig: AppConfig, updates: Partial<AppConfig>) => {
+    if (isSyncing) return;
+    
     const payload = buildPayloadFromUpdates(updates);
     if (Object.keys(payload).length === 0) {
-      setSaving(false);
       return;
     }
-    cache.saveConfig(newConfig);
 
-    const syncAppwrite = async () => {
-      if (isAppwriteReady()) {
-        try {
-          await databases.updateDocument(APPWRITE_CONFIG.DATABASE_ID, APPWRITE_CONFIG.COLLECTION_SETTINGS, 'default', payload);
-          console.log("📤 [APPWRITE] Synchronisation réussie.");
-        } catch (e: any) {
-          console.error("⚠️ [APPWRITE] Échec synchronisation:", {
-            status: e.code,
-            type: e.type,
-            message: e.message,
-            hint: e.code === 403 ? "Vérifiez les permissions de mise à jour sur le document" : 
-                  e.code === 404 ? "Document 'default' introuvable" : "Erreur réseau ou CORS"
-          });
-        }
-      }
-    };
+    // Ne pas synchroniser si la source est CACHE ou LOCAL
+    if (activeSource === DB_SOURCE.CACHE || activeSource === DB_SOURCE.LOCAL) {
+      return;
+    }
 
-    const syncSupabase = async () => {
-      if (!supabase) return;
-      try {
-        const { error } = await supabase.from('settings').upsert({ id: 1, ...payload }, { onConflict: 'id' });
-        if (error) throw error;
-        console.log("📤 [SUPABASE] Synchronisation réussie.");
-      } catch (e: any) {
-        console.error("⚠️ [SUPABASE] Échec synchronisation:", {
-          message: e.message,
-          code: e.code,
-          hint: "Projet peut-être en pause ou erreur CORS"
-        });
-      }
-    };
+    setIsSyncing(true);
+    setSaving(true);
 
-    const syncNeon = async () => {
-      if (activeSource !== DB_SOURCE.NEON) return;
-      try {
+    try {
+      if (activeSource === DB_SOURCE.NEON) {
         const apiBase = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) || '';
         const res = await fetch(`${apiBase}/api/settings`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!res.ok) throw new Error(await res.text());
         console.log("📤 [NEON] Synchronisation réussie.");
-      } catch (e: any) {
-        console.error("⚠️ [NEON] Échec synchronisation:", { message: e?.message });
-      }
-    };
-
-    const syncConvex = async () => {
-      if (activeSource !== DB_SOURCE.CONVEX) return;
-      try {
+      } else if (activeSource === DB_SOURCE.APPWRITE && isAppwriteReady()) {
+        await databases.updateDocument(APPWRITE_CONFIG.DATABASE_ID, APPWRITE_CONFIG.COLLECTION_SETTINGS, 'default', payload);
+        console.log("📤 [APPWRITE] Synchronisation réussie.");
+      } else if (activeSource === DB_SOURCE.SUPABASE && supabase) {
+        const { error } = await supabase.from('settings').upsert({ id: 1, ...payload }, { onConflict: 'id' });
+        if (error) throw error;
+        console.log("📤 [SUPABASE] Synchronisation réussie.");
+      } else if (activeSource === DB_SOURCE.CONVEX) {
         const adapter = createDatabaseAdapter('CONVEX');
         await adapter.updateSettings(payload);
         console.log("📤 [CONVEX] Synchronisation réussie.");
-      } catch (e: any) {
-        console.error("⚠️ [CONVEX] Échec synchronisation:", { message: e?.message });
+      }
+    } catch (e: any) {
+      console.error(`⚠️ [${activeSource}] Échec synchronisation:`, {
+        message: e?.message || e?.error || 'Erreur inconnue',
+        code: e?.code,
+        status: e?.status
+      });
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSaving(false), 600);
+    }
+  };
+
+  const sync = (newConfig: AppConfig, updates: Partial<AppConfig>) => {
+    // Sauvegarder immédiatement dans le cache local pour la réactivité UI
+    cache.saveConfig(newConfig);
+
+    // Stocker la sync en attente
+    pendingSyncRef.current = { config: newConfig, updates };
+
+    // Annuler le timer précédent s'il existe
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    // Programmer la sync avec debounce (600ms)
+    syncTimeoutRef.current = setTimeout(() => {
+      if (pendingSyncRef.current) {
+        performSync(pendingSyncRef.current.config, pendingSyncRef.current.updates);
+        pendingSyncRef.current = null;
+      }
+    }, 600);
+  };
+
+  // Nettoyer le timer au démontage
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
       }
     };
-
-    // On lance les syncos en parallèle sans bloquer l'UI
-    Promise.all([syncNeon(), syncAppwrite(), syncSupabase(), syncConvex()]).finally(() => {
-      setTimeout(() => setSaving(false), 600);
-    });
-  };
+  }, []);
 
   const handleConfigUpdate = (updates: Partial<AppConfig>) => {
     setConfig(prev => {
@@ -363,16 +492,35 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
             </div>
             <div className="flex flex-col gap-5 pt-4">
                <span className="text-xs font-black text-orange-600 uppercase tracking-[0.2em] ml-2">Photo Story</span>
-               <div className="relative w-full h-56 border-2 border-dashed border-gray-200 rounded-[40px] flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-all overflow-hidden shadow-inner group">
-                  {victoryPhoto ? <img src={victoryPhoto} className="w-full h-full object-cover opacity-60 transition-transform group-hover:scale-105" /> : <span className="text-xs font-black text-gray-300 uppercase">Importer une photo</span>}
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={(e) => handleVictoryPhotoUpload(e.target.files?.[0] || null)} 
-                    disabled={uploadingImage}
-                    className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed" 
-                  />
-               </div>
+               {victoryPhoto ? (
+                 <div className="flex flex-col gap-3">
+                   <VictoryPhotoFocusSelector 
+                     photo={victoryPhoto}
+                     focus={config.victoryPhotoFocus}
+                     onFocusChange={(focus) => handleConfigUpdate({ victoryPhotoFocus: focus })}
+                   />
+                   <button
+                     onClick={() => {
+                       setVictoryPhoto('');
+                       handleConfigUpdate({ victoryPhotoFocus: undefined });
+                     }}
+                     className="w-full py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-[24px] text-xs font-black uppercase tracking-widest transition-all"
+                   >
+                     Supprimer la photo
+                   </button>
+                 </div>
+               ) : (
+                 <div className="relative w-full h-56 border-2 border-dashed border-gray-200 rounded-[40px] flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-all overflow-hidden shadow-inner group">
+                   <span className="text-xs font-black text-gray-300 uppercase">Importer une photo</span>
+                   <input 
+                     type="file" 
+                     accept="image/*" 
+                     onChange={(e) => handleVictoryPhotoUpload(e.target.files?.[0] || null)} 
+                     disabled={uploadingImage}
+                     className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed" 
+                   />
+                 </div>
+               )}
             </div>
           </div>
         </section>

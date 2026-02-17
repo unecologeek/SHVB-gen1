@@ -153,7 +153,16 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
         <style dangerouslySetInnerHTML={{ __html: fontStyles }} />
 
         {victoryPhoto && (
-          <img src={victoryPhoto} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img 
+            src={victoryPhoto} 
+            alt="" 
+            className="absolute inset-0 w-full h-full object-cover" 
+            style={{
+              objectPosition: config.victoryPhotoFocus 
+                ? `${config.victoryPhotoFocus.x}% ${config.victoryPhotoFocus.y}%`
+                : 'center center'
+            }}
+          />
         )}
 
         {config.victoryBg && (

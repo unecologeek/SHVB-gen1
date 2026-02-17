@@ -10,6 +10,8 @@ const SETTINGS_FIELDS = [
   "results_bg",
   "preview_bg",
   "victory_bg",
+  "victory_photo_focus_x",
+  "victory_photo_focus_y",
   "main_color",
   "visual_type",
   "category",
@@ -32,6 +34,8 @@ export const update = mutation({
     results_bg: v.optional(v.string()),
     preview_bg: v.optional(v.string()),
     victory_bg: v.optional(v.string()),
+    victory_photo_focus_x: v.optional(v.union(v.number(), v.null())),
+    victory_photo_focus_y: v.optional(v.union(v.number(), v.null())),
     main_color: v.optional(v.string()),
     visual_type: v.optional(v.string()),
     category: v.optional(v.string()),
@@ -40,9 +44,11 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.query("settings").first();
-    const patch: Record<string, string> = {};
+    const patch: Record<string, string | number | null> = {};
     for (const key of SETTINGS_FIELDS) {
-      if (args[key] !== undefined) patch[key] = args[key] as string;
+      if (args[key] !== undefined) {
+        patch[key] = args[key] as string | number | null;
+      }
     }
     if (Object.keys(patch).length === 0 && existing) return existing._id;
     if (existing) {

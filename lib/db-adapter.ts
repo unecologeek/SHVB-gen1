@@ -26,6 +26,8 @@ export interface SettingsData {
   results_bg?: string;
   preview_bg?: string;
   victory_bg?: string;
+  victory_photo_focus_x?: number | null;
+  victory_photo_focus_y?: number | null;
   main_color?: string;
   visual_type?: string;
   category?: string;
@@ -562,6 +564,8 @@ export class ConvexAdapter implements DatabaseAdapter {
       results_bg: doc.results_bg,
       preview_bg: doc.preview_bg,
       victory_bg: doc.victory_bg,
+      victory_photo_focus_x: (doc as any).victory_photo_focus_x,
+      victory_photo_focus_y: (doc as any).victory_photo_focus_y,
       main_color: doc.main_color,
       visual_type: doc.visual_type,
       category: doc.category,
@@ -580,6 +584,8 @@ export class ConvexAdapter implements DatabaseAdapter {
       results_bg: doc.results_bg,
       preview_bg: doc.preview_bg,
       victory_bg: doc.victory_bg,
+      victory_photo_focus_x: (doc as any).victory_photo_focus_x,
+      victory_photo_focus_y: (doc as any).victory_photo_focus_y,
       main_color: doc.main_color,
       visual_type: doc.visual_type,
       category: doc.category,

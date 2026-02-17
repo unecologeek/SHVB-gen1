@@ -45,6 +45,9 @@ export const loadSettingsFromSource = async (
       resultsBg: settings.results_bg || defaultConfig.resultsBg,
       previewBg: settings.preview_bg || defaultConfig.previewBg,
       victoryBg: settings.victory_bg || defaultConfig.victoryBg,
+      victoryPhotoFocus: (settings.victory_photo_focus_x !== undefined && settings.victory_photo_focus_y !== undefined) 
+        ? { x: Number(settings.victory_photo_focus_x), y: Number(settings.victory_photo_focus_y) }
+        : defaultConfig.victoryPhotoFocus,
       mainColor: settings.main_color || defaultConfig.mainColor,
       visualType: (settings.visual_type as any) || defaultConfig.visualType,
       category: settings.category || defaultConfig.category,

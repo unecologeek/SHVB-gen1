@@ -13,6 +13,8 @@ export default defineSchema({
     results_bg: v.optional(v.string()),
     preview_bg: v.optional(v.string()),
     victory_bg: v.optional(v.string()),
+    victory_photo_focus_x: v.optional(v.number()),
+    victory_photo_focus_y: v.optional(v.number()),
     main_color: v.optional(v.string()),
     visual_type: v.optional(v.string()),
     category: v.optional(v.string()),

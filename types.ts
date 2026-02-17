@@ -44,6 +44,7 @@ export interface AppConfig {
   previewBg: string;
   // Victory fields
   victoryBg: string;
+  victoryPhotoFocus?: { x: number; y: number }; // Coordonnées en pourcentage (0-100)
   // Common fields
   mainColor: string;
   liveColor: string;
