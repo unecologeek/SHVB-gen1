@@ -122,6 +122,7 @@ INSERT INTO settings (id, title, subtitle) VALUES (1, NULL, NULL) ON CONFLICT (i
 ## Déploiement
 
 - **Netlify** : le projet contient un [netlify.toml](netlify.toml) (build `npm run build`, répertoire de publication `dist`). Connecter le dépôt à Netlify pour déployer le front.
+- **Vercel + Convex** : si le déploiement Convex échoue avec « Temporary directory and project directory are on different filesystems », ajouter la variable d’environnement **`CONVEX_TMPDIR`** = **`.convex-tmp`** dans les paramètres du projet Vercel (même système de fichiers que le projet).
 - **API (Neon)** : si vous utilisez l’API Vercel pour Neon, déployer les routes sous `api/` sur Vercel et configurer `shvb_DATABASE_URL` (ou `DATABASE_URL`) dans les variables d’environnement du projet.
 
 ## Références
