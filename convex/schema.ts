@@ -10,6 +10,9 @@ export default defineSchema({
   settings: defineTable({
     title: v.optional(v.string()),
     subtitle: v.optional(v.string()),
+    results_bg: v.optional(v.string()),
+    preview_bg: v.optional(v.string()),
+    victory_bg: v.optional(v.string()),
     victory_photo_focus_x: v.optional(v.number()),
     victory_photo_focus_y: v.optional(v.number()),
     main_color: v.optional(v.string()),
