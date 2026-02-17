@@ -28,15 +28,25 @@ export function withCors(
   });
 }
 
+/** Réponse JSON avec payload forcé sérialisable (évite XrayWrapper / cross-origin sur Vercel). */
 export function jsonResponse(res: VercelResponse, status: number, data: unknown): void {
-  res.status(status).json(data);
+  try {
+    const payload = JSON.parse(JSON.stringify(data));
+    res.status(status).json(payload);
+  } catch {
+    res.status(status).json(data);
+  }
 }
 
 export type PostgresSource = 'neon' | 'aiven';
 
-/** Convertit des lignes BDD en objets sérialisables (évite XrayWrapper / cross-origin sur Vercel). */
+/** Convertit des lignes BDD en objets 100 % sérialisables (évite XrayWrapper sur Vercel). */
 function toPlainRows(rows: unknown[]): Record<string, unknown>[] {
-  return rows.map((r) => (typeof r === 'object' && r !== null && !Array.isArray(r) ? { ...(r as Record<string, unknown>) } : r as Record<string, unknown>));
+  try {
+    return JSON.parse(JSON.stringify(rows)) as Record<string, unknown>[];
+  } catch {
+    return rows.map((r) => (typeof r === 'object' && r !== null && !Array.isArray(r) ? { ...(r as Record<string, unknown>) } : r as Record<string, unknown>));
+  }
 }
 
 /** Construit une requête SQL avec $1, $2... à partir du template tag. */
