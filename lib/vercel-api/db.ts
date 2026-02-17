@@ -1,5 +1,9 @@
 import { neon } from '@neondatabase/serverless';
 
+// #region agent log
+try { console.log('[DEBUG] lib/vercel-api/db.ts loaded'); } catch (_) {}
+// #endregion
+
 export type TeamRow = { id: string; name: string; logo: string; is_local: boolean };
 
 export function getSql(): ReturnType<typeof neon> | null {

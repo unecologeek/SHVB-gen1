@@ -1,5 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// #region agent log
+try { console.log('[DEBUG] lib/vercel-api/cors.ts loaded'); } catch (_) {}
+// #endregion
+
 const ALLOW_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',

@@ -38,7 +38,9 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      text-overflow: clip;
       line-height: 0.95;
+      word-break: break-word;
     }
     .victory-score-box {
       width: 280px; 
@@ -93,7 +95,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           className="absolute top-[78px] left-1/2 -translate-x-1/2 bg-[#1A1A1A] px-12 py-4 shadow-xl z-20 flex items-center justify-center border border-white/5"
           style={{ borderRadius: '40px' }}
         >
-          <span className="text-white text-[24px] font-ultra-black-normal uppercase tracking-[0.08em] whitespace-nowrap">
+          <span className="text-white text-[24px] font-ultra-black-normal uppercase tracking-[0.08em] break-words text-center">
             {config.category || 'PRÉ NATIONALE MASCULINE'}
           </span>
         </div>
@@ -121,13 +123,13 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
         </div>
 
         <div className="absolute bottom-[84px] w-full px-[54px] flex items-center justify-center gap-6">
-          <div className="bg-[#1A1A1A] rounded-full px-9 py-4.5 flex items-center gap-4 shadow-2xl border border-white/5 whitespace-nowrap">
+          <div className="bg-[#1A1A1A] rounded-full px-9 py-4.5 flex items-center gap-4 shadow-2xl border border-white/5 min-w-0">
             <svg className="w-8 h-8 text-white opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <span className="text-white text-[24px] font-heavy-bold uppercase tracking-tight">{config.matchDate}</span>
+            <span className="text-white text-[24px] font-heavy-bold uppercase tracking-tight break-words">{config.matchDate}</span>
           </div>
-          <div className="bg-[#1A1A1A] rounded-full px-9 py-4.5 flex items-center gap-4 shadow-2xl border border-white/5 whitespace-nowrap max-w-[500px] overflow-hidden">
+          <div className="bg-[#1A1A1A] rounded-full px-9 py-4.5 flex items-center gap-4 shadow-2xl border border-white/5 min-w-0 max-w-[600px]">
             <svg className="w-8 h-8 text-white opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <span className="text-white text-[24px] font-heavy-bold uppercase tracking-tight truncate">{config.location}</span>
+            <span className="text-white text-[24px] font-heavy-bold uppercase tracking-tight break-words text-left" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'clip' }}>{config.location}</span>
           </div>
         </div>
       </div>
@@ -222,7 +224,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           >
             {config.title || 'RÉSULTATS'}
           </h1>
-          <p className="text-black uppercase tracking-[0.25em] font-heavy-bold whitespace-nowrap" style={{ fontSize: isCompact ? '32px' : '40px', marginTop: isCompact ? '20px' : '32px' }}>
+          <p className="text-black uppercase tracking-[0.25em] font-heavy-bold break-words" style={{ fontSize: isCompact ? '32px' : '40px', marginTop: isCompact ? '20px' : '32px' }}>
             {config.subtitle || 'SEMAINE 51'}
           </p>
         </div>
@@ -230,7 +232,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
         <div className={`w-full px-12 flex flex-col flex-1 justify-start ${isCompact ? 'gap-6 pt-2' : 'gap-10 pt-6'}`}>
           {matches.slice(0, 4).map((match) => (
             <div key={match.id} className={`flex flex-col w-full ${isCompact ? 'gap-2.5' : 'gap-4'}`}>
-              <h2 className="text-center text-gray-400 uppercase tracking-[0.2em] font-heavy-bold whitespace-nowrap overflow-hidden text-ellipsis px-20" style={{ fontSize: isCompact ? '18px' : '20px' }}>
+              <h2 className="text-center text-gray-400 uppercase tracking-[0.2em] font-heavy-bold break-words px-20" style={{ fontSize: isCompact ? '18px' : '20px' }}>
                 {match.league}
               </h2>
               <div 
