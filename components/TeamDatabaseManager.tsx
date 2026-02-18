@@ -12,12 +12,14 @@ interface PendingTeam {
 interface Props {
   /** Appelé après mutation. Si `newTeams` est fourni, le parent peut fusionner au lieu de refetch. */
   onTeamsChange: (newTeams?: TeamData[]) => void;
+  /** Appelé après "Définir comme club local" : met à jour la liste en mémoire sans refetch. */
+  onSetLocalTeam?: (teamId: string) => void;
   availableTeams: TeamData[];
   loadingTeams: boolean;
   activeSource: ConnectionSource;
 }
 
-const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, loadingTeams, activeSource }) => {
+const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, availableTeams, loadingTeams, activeSource }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingTeams, setPendingTeams] = useState<PendingTeam[]>([]);
@@ -140,7 +142,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
     try {
       setUpdatingId(teamId);
       await adapter.setLocalTeam(teamId);
-      onTeamsChange();
+      onSetLocalTeam?.(teamId);
     } catch (err: any) {
       console.error(`❌ Impossible de changer le club local (${adapter.source}):`, err);
       alert(`Erreur: ${err.message || err.hint || 'Impossible de changer le club local'}`);

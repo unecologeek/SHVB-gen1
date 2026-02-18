@@ -96,7 +96,7 @@ const App: React.FC = () => {
         const teams = await dbAdapter.getTeams();
         teams.forEach(t => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
         setAvailableTeams(prev => {
-          if (prev.length === teams.length && teams.every((t, i) => t.id === prev[i]?.id && t.name === prev[i]?.name && t.logo === prev[i]?.logo)) return prev;
+          if (prev.length === teams.length && teams.every((t, i) => t.id === prev[i]?.id && t.name === prev[i]?.name && t.logo === prev[i]?.logo && t.is_local === prev[i]?.is_local)) return prev;
           return teams;
         });
         console.log(`✅ [${source}] ${teams.length} clubs récupérés.`);
@@ -260,6 +260,13 @@ const App: React.FC = () => {
                   } else {
                     fetchTeams(activeSource);
                   }
+                }}
+                onSetLocalTeam={(teamId) => {
+                  setAvailableTeams(prev => {
+                    const next = prev.map(t => ({ ...t, is_local: t.id === teamId }));
+                    cache.saveAll(config, next);
+                    return next;
+                  });
                 }}
                 availableTeams={teamsWithCachedLogos}
                 loadingTeams={loadingTeams}
