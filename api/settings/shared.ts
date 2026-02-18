@@ -78,10 +78,16 @@ function getAivenPool(): pg.Pool | null {
     return null;
   }
   if (!aivenPool) {
-    console.log('[Aiven] getAivenPool: creating new Pool');
+    // Retirer sslmode de l'URL : avec sslmode=require, node-pg peut ignorer notre ssl.rejectUnauthorized
+    const urlWithoutSslMode = url
+      .replace(/\?sslmode=[^&]+&/gi, '?')   // ?sslmode=require& → ?
+      .replace(/&sslmode=[^&]+/gi, '')     // &sslmode=require → rien
+      .replace(/\?sslmode=[^&]+/gi, '');   // ?sslmode=require (seul) → rien
+    const connectionString = urlWithoutSslMode.replace(/\?$/, '') || url;
+    console.log('[Aiven] getAivenPool: creating new Pool (ssl rejectUnauthorized=false)');
     aivenPool = new Pool({
-      connectionString: url,
-      // Aiven utilise un certificat que Node ne truste pas par défaut en serverless ; connexion toujours chiffrée (TLS).
+      connectionString,
+      // Aiven : certificat non reconnu par Node en serverless → accepter (connexion reste chiffrée).
       ssl: { rejectUnauthorized: false },
     });
   }
