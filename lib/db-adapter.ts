@@ -333,7 +333,7 @@ export class AivenAdapter implements DatabaseAdapter {
   async deleteTeam(id: string): Promise<void> {
     const res = await this.api(`/teams/${id}`, { method: 'DELETE' });
     if (!res.ok && res.status !== 204) {
-      const json = (await res.json()).catch(() => ({})) as { error?: string; code?: string };
+      const json = await res.json().catch(() => ({})) as { error?: string; code?: string };
       throw { message: json.error || res.statusText, code: json.code || res.status };
     }
   }
@@ -341,7 +341,7 @@ export class AivenAdapter implements DatabaseAdapter {
   async setLocalTeam(id: string): Promise<void> {
     const res = await this.api('/teams/set-local', { method: 'POST', body: JSON.stringify({ id }) });
     if (!res.ok && res.status !== 204) {
-      const json = (await res.json()).catch(() => ({})) as { error?: string; code?: string };
+      const json = await res.json().catch(() => ({})) as { error?: string; code?: string };
       throw { message: json.error || res.statusText, code: json.code || res.status };
     }
   }

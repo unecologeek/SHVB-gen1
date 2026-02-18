@@ -78,18 +78,31 @@ function getAivenPool(): pg.Pool | null {
     return null;
   }
   if (!aivenPool) {
-    // Retirer sslmode de l'URL : avec sslmode=require, node-pg peut ignorer notre ssl.rejectUnauthorized
+    // Parser l'URL avec l'API WHATWG pour éviter l'avertissement url.parse() (déprécié) dans pg
     const urlWithoutSslMode = url
-      .replace(/\?sslmode=[^&]+&/gi, '?')   // ?sslmode=require& → ?
-      .replace(/&sslmode=[^&]+/gi, '')     // &sslmode=require → rien
-      .replace(/\?sslmode=[^&]+/gi, '');   // ?sslmode=require (seul) → rien
-    const connectionString = urlWithoutSslMode.replace(/\?$/, '') || url;
+      .replace(/\?sslmode=[^&]+&/gi, '?')
+      .replace(/&sslmode=[^&]+/gi, '')
+      .replace(/\?sslmode=[^&]+/gi, '')
+      .replace(/\?$/, '') || url;
+    let poolConfig: pg.PoolConfig;
+    try {
+      const u = new URL(urlWithoutSslMode);
+      poolConfig = {
+        host: u.hostname,
+        port: u.port ? parseInt(u.port, 10) : 5432,
+        database: (u.pathname || '/').slice(1) || undefined,
+        user: u.username || undefined,
+        password: u.password || undefined,
+        ssl: { rejectUnauthorized: false },
+      };
+    } catch {
+      poolConfig = {
+        connectionString: urlWithoutSslMode,
+        ssl: { rejectUnauthorized: false },
+      };
+    }
     console.log('[Aiven] getAivenPool: creating new Pool (ssl rejectUnauthorized=false)');
-    aivenPool = new Pool({
-      connectionString,
-      // Aiven : certificat non reconnu par Node en serverless → accepter (connexion reste chiffrée).
-      ssl: { rejectUnauthorized: false },
-    });
+    aivenPool = new Pool(poolConfig);
   }
   return aivenPool;
 }
