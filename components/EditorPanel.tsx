@@ -302,13 +302,21 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
       return;
     }
 
+    const hasBgImages = updates.resultsBg !== undefined || updates.previewBg !== undefined || updates.victoryBg !== undefined;
+    const payload = buildPayloadFromUpdates(updates);
+    const hasSettings = Object.keys(payload).length > 0;
+
+    // Ne pas appeler Aiven s'il n'y a rien à enregistrer (évite une synchro à chaque petit changement)
+    if (!hasBgImages && !hasSettings) {
+      return;
+    }
+
     setIsSyncing(true);
     setSaving(true);
 
     try {
       const adapter = createDatabaseAdapter(activeSource);
 
-      // Gérer les images de fond séparément
       if (updates.resultsBg !== undefined) {
         await adapter.setBackgroundImage('results', updates.resultsBg);
       }
@@ -319,9 +327,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
         await adapter.setBackgroundImage('victory', updates.victoryBg);
       }
 
-      // Gérer les autres paramètres
-      const payload = buildPayloadFromUpdates(updates);
-      if (Object.keys(payload).length > 0) {
+      if (hasSettings) {
         await adapter.updateSettings(payload);
       }
 
@@ -360,13 +366,13 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
       clearTimeout(syncTimeoutRef.current);
     }
 
-    // Programmer la sync avec debounce (600ms)
+    // Programmer la sync avec debounce (1,5 s) pour limiter les appels Aiven
     syncTimeoutRef.current = setTimeout(() => {
       if (pendingSyncRef.current) {
         performSync(pendingSyncRef.current.config, pendingSyncRef.current.updates);
         pendingSyncRef.current = null;
       }
-    }, 600);
+    }, 1500);
   };
 
   // Nettoyer le timer au démontage
