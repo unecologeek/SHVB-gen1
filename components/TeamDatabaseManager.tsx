@@ -37,10 +37,10 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
     });
   }, [availableTeams]);
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files) return;
-    
-    for (const file of Array.from(files)) {
+  const handleFiles = async (files: FileList | File[] | null) => {
+    if (!files?.length) return;
+    const list = Array.isArray(files) ? files : Array.from(files);
+    for (const file of list) {
       try {
         const result = await validateAndLoadImage(file, {
           compress: true,
@@ -92,8 +92,20 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    const files = e.dataTransfer?.files;
-    if (files?.length) handleFiles(files);
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    if (dt.files?.length) {
+      handleFiles(dt.files);
+      return;
+    }
+    if (dt.items?.length) {
+      const files: File[] = [];
+      for (let i = 0; i < dt.items.length; i++) {
+        const f = dt.items[i].getAsFile();
+        if (f) files.push(f);
+      }
+      if (files.length) handleFiles(files);
+    }
   };
 
   const openFilePicker = () => fileInputRef.current?.click();
@@ -277,6 +289,9 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFilePicker(); } }}
             onClick={openFilePicker}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             className={`
               shrink-0 relative border-[3px] border-dashed rounded-[32px] p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 cursor-pointer select-none
               ${isDragging ? 'border-orange-500 bg-orange-500/10 scale-[0.98]' : 'border-gray-700 hover:border-gray-500 bg-gray-800/30'}

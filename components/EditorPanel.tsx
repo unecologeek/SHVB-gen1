@@ -547,6 +547,20 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-black text-blue-900 uppercase tracking-widest">Fond du visuel</label>
               <span className="text-xs text-blue-600/70 font-bold uppercase">Max 0.9 Mo – format PNG</span>
+              {(() => {
+                const currentBg = config.visualType === 'results' ? config.resultsBg : config.visualType === 'preview' ? config.previewBg : config.victoryBg;
+                return currentBg ? (
+                  <span className="inline-flex items-center gap-2 mt-1">
+                    <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+                    <span className="text-xs font-black text-green-700 uppercase tracking-wider">Fond défini – cliquer pour remplacer</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 mt-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                    <span className="text-xs font-black text-amber-700 uppercase tracking-wider">Aucun fond – ajouter une image</span>
+                  </span>
+                );
+              })()}
               <span className="text-[11px] text-blue-600/80 font-bold">
                 Réduire la taille :{' '}
                 <a href="https://compresspng.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-700">compresspng.com</a>
@@ -554,20 +568,31 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
                 <a href="https://www.iloveimg.com/compress-image" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-700">iloveimg.com</a>
               </span>
             </div>
-            <div className="w-16 h-16 rounded-[24px] bg-blue-600 flex items-center justify-center text-white cursor-pointer relative shadow-xl hover:scale-110 active:scale-90 transition-transform">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={(e) => handleBackgroundImageUpload(e.target.files?.[0] || null, config.visualType)} 
-                disabled={uploadingImage}
-                className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed" 
-              />
-              {uploadingImage && (
-                <div className="absolute inset-0 bg-blue-600/80 flex items-center justify-center rounded-[24px]">
-                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex items-center gap-4">
+              {(config.visualType === 'results' ? config.resultsBg : config.visualType === 'preview' ? config.previewBg : config.victoryBg) && (
+                <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-blue-200 shadow-inner shrink-0 bg-gray-100">
+                  <img 
+                    src={config.visualType === 'results' ? config.resultsBg : config.visualType === 'preview' ? config.previewBg : config.victoryBg} 
+                    alt="Fond actuel" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
+              <div className="w-16 h-16 rounded-[24px] bg-blue-600 flex items-center justify-center text-white cursor-pointer relative shadow-xl hover:scale-110 active:scale-90 transition-transform" title={(config.visualType === 'results' ? config.resultsBg : config.visualType === 'preview' ? config.previewBg : config.victoryBg) ? 'Remplacer le fond' : 'Ajouter un fond'}>
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => handleBackgroundImageUpload(e.target.files?.[0] || null, config.visualType)} 
+                  disabled={uploadingImage}
+                  className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed" 
+                />
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-blue-600/80 flex items-center justify-center rounded-[24px]">
+                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-6 relative z-10">
