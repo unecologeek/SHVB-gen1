@@ -284,7 +284,15 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           ))}
         </div>
 
-        <div className="w-full flex flex-col items-center shrink-0" style={{ paddingTop: isCompact ? '8px' : '20px', paddingBottom: isCompact ? '6px' : isThreeMatches ? '20px' : '44px' }}>
+        <div 
+          className="w-full flex flex-col items-center shrink-0" 
+          style={{ 
+            marginTop: config.paginationMarginTop !== undefined ? `${config.paginationMarginTop}px` : undefined,
+            marginBottom: config.paginationMarginBottom !== undefined ? `${config.paginationMarginBottom}px` : undefined,
+            paddingTop: config.paginationPaddingTop !== undefined ? `${config.paginationPaddingTop}px` : (isCompact ? '8px' : '20px'),
+            paddingBottom: config.paginationPaddingBottom !== undefined ? `${config.paginationPaddingBottom}px` : (isCompact ? '6px' : isThreeMatches ? '20px' : '44px')
+          }}
+        >
           {config.showSlideIndicator ? (
             <div className="flex items-center justify-center gap-3 py-5 min-h-[52px]">
               {Array.from({ length: config.totalSlides }).map((_, i) => (

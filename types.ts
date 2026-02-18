@@ -49,4 +49,9 @@ export interface AppConfig {
   showSlideIndicator: boolean;
   totalSlides: number;
   currentSlide: number;
+  // Marges et padding de la pagination
+  paginationMarginTop?: number; // px
+  paginationMarginBottom?: number; // px
+  paginationPaddingTop?: number; // px
+  paginationPaddingBottom?: number; // px
 }

@@ -291,6 +291,10 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     if (updates.category !== undefined) payload.category = updates.category;
     if (updates.matchDate !== undefined) payload.match_date = updates.matchDate;
     if (updates.location !== undefined) payload.location = updates.location;
+    if (updates.paginationMarginTop !== undefined) payload.pagination_margin_top = updates.paginationMarginTop;
+    if (updates.paginationMarginBottom !== undefined) payload.pagination_margin_bottom = updates.paginationMarginBottom;
+    if (updates.paginationPaddingTop !== undefined) payload.pagination_padding_top = updates.paginationPaddingTop;
+    if (updates.paginationPaddingBottom !== undefined) payload.pagination_padding_bottom = updates.paginationPaddingBottom;
     return payload;
   };
 
@@ -623,24 +627,70 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
                   <span className="text-xs font-black text-blue-400 uppercase tracking-widest">Afficher la pagination</span>
                 </label>
                 {config.showSlideIndicator && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Nombre de slides</span>
-                      <select value={config.totalSlides} onChange={(e) => { const n = Number(e.target.value); handleConfigUpdate({ totalSlides: n, currentSlide: Math.min(config.currentSlide, n) }); }} className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm appearance-none cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '20px', paddingRight: '44px' }}>
-                        {Array.from({ length: 9 }, (_, i) => i + 2).map((n) => (
-                          <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Nombre de slides</span>
+                        <select value={config.totalSlides} onChange={(e) => { const n = Number(e.target.value); handleConfigUpdate({ totalSlides: n, currentSlide: Math.min(config.currentSlide, n) }); }} className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm appearance-none cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '20px', paddingRight: '44px' }}>
+                          {Array.from({ length: 9 }, (_, i) => i + 2).map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Slide active</span>
+                        <select value={config.currentSlide} onChange={(e) => handleConfigUpdate({ currentSlide: Number(e.target.value) })} className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm appearance-none cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '20px', paddingRight: '44px' }}>
+                          {Array.from({ length: config.totalSlides }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Slide active</span>
-                      <select value={config.currentSlide} onChange={(e) => handleConfigUpdate({ currentSlide: Number(e.target.value) })} className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm appearance-none cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '20px', paddingRight: '44px' }}>
-                        {Array.from({ length: config.totalSlides }, (_, i) => i + 1).map((n) => (
-                          <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Marge haut (px)</span>
+                        <input 
+                          type="number" 
+                          value={config.paginationMarginTop ?? ''} 
+                          onChange={(e) => handleConfigUpdate({ paginationMarginTop: e.target.value === '' ? undefined : Number(e.target.value) })} 
+                          placeholder="Auto"
+                          className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Marge bas (px)</span>
+                        <input 
+                          type="number" 
+                          value={config.paginationMarginBottom ?? ''} 
+                          onChange={(e) => handleConfigUpdate({ paginationMarginBottom: e.target.value === '' ? undefined : Number(e.target.value) })} 
+                          placeholder="Auto"
+                          className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm"
+                        />
+                      </div>
                     </div>
-                  </div>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Padding haut (px)</span>
+                        <input 
+                          type="number" 
+                          value={config.paginationPaddingTop ?? ''} 
+                          onChange={(e) => handleConfigUpdate({ paginationPaddingTop: e.target.value === '' ? undefined : Number(e.target.value) })} 
+                          placeholder="Auto"
+                          className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-black text-blue-400 uppercase ml-4 tracking-widest">Padding bas (px)</span>
+                        <input 
+                          type="number" 
+                          value={config.paginationPaddingBottom ?? ''} 
+                          onChange={(e) => handleConfigUpdate({ paginationPaddingBottom: e.target.value === '' ? undefined : Number(e.target.value) })} 
+                          placeholder="Auto"
+                          className="w-full bg-white border border-blue-100 rounded-[24px] p-4 text-sm font-black uppercase outline-none focus:border-blue-400 transition-all shadow-sm"
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

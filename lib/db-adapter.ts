@@ -24,6 +24,10 @@ export interface SettingsData {
   category?: string;
   match_date?: string;
   location?: string;
+  pagination_margin_top?: number | null;
+  pagination_margin_bottom?: number | null;
+  pagination_padding_top?: number | null;
+  pagination_padding_bottom?: number | null;
 }
 
 export type BackgroundImageType = 'results' | 'preview' | 'victory';

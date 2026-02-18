@@ -33,6 +33,10 @@ const App: React.FC = () => {
     showSlideIndicator: false,
     totalSlides: 3,
     currentSlide: 1,
+    paginationMarginTop: undefined,
+    paginationMarginBottom: undefined,
+    paginationPaddingTop: undefined,
+    paginationPaddingBottom: undefined,
   });
 
   const [configLoaded, setConfigLoaded] = useState(false);
