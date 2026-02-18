@@ -12,6 +12,22 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
   const isCompact = matches.length >= 4;
   const isThreeMatches = matches.length === 3;
   
+  // Valeurs par défaut pour les marges/padding selon le nombre de matchs
+  const getDefaultPaginationStyles = () => {
+    if (isCompact) {
+      // 4 matchs : tout à 0
+      return { marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 };
+    } else if (isThreeMatches) {
+      // 3 matchs : padding 0/0, margin-top 0, margin-bottom -13px
+      return { marginTop: 0, marginBottom: -13, paddingTop: 0, paddingBottom: 0 };
+    } else {
+      // 2 matchs : valeurs par défaut
+      return { marginTop: undefined, marginBottom: undefined, paddingTop: 20, paddingBottom: 44 };
+    }
+  };
+  
+  const defaultStyles = getDefaultPaginationStyles();
+  
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = 'none';
   };
@@ -287,10 +303,10 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
         <div 
           className="w-full flex flex-col items-center shrink-0" 
           style={{ 
-            marginTop: config.paginationMarginTop !== undefined ? `${config.paginationMarginTop}px` : undefined,
-            marginBottom: config.paginationMarginBottom !== undefined ? `${config.paginationMarginBottom}px` : undefined,
-            paddingTop: config.paginationPaddingTop !== undefined ? `${config.paginationPaddingTop}px` : (isCompact ? '8px' : '20px'),
-            paddingBottom: config.paginationPaddingBottom !== undefined ? `${config.paginationPaddingBottom}px` : (isCompact ? '6px' : isThreeMatches ? '20px' : '44px')
+            marginTop: config.paginationMarginTop !== undefined ? `${config.paginationMarginTop}px` : (defaultStyles.marginTop !== undefined ? `${defaultStyles.marginTop}px` : undefined),
+            marginBottom: config.paginationMarginBottom !== undefined ? `${config.paginationMarginBottom}px` : (defaultStyles.marginBottom !== undefined ? `${defaultStyles.marginBottom}px` : undefined),
+            paddingTop: config.paginationPaddingTop !== undefined ? `${config.paginationPaddingTop}px` : (defaultStyles.paddingTop !== undefined ? `${defaultStyles.paddingTop}px` : (isCompact ? '8px' : '20px')),
+            paddingBottom: config.paginationPaddingBottom !== undefined ? `${config.paginationPaddingBottom}px` : (defaultStyles.paddingBottom !== undefined ? `${defaultStyles.paddingBottom}px` : (isCompact ? '6px' : '44px'))
           }}
         >
           {config.showSlideIndicator ? (

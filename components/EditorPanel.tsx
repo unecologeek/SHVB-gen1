@@ -291,10 +291,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
     if (updates.category !== undefined) payload.category = updates.category;
     if (updates.matchDate !== undefined) payload.match_date = updates.matchDate;
     if (updates.location !== undefined) payload.location = updates.location;
-    if (updates.paginationMarginTop !== undefined) payload.pagination_margin_top = updates.paginationMarginTop;
-    if (updates.paginationMarginBottom !== undefined) payload.pagination_margin_bottom = updates.paginationMarginBottom;
-    if (updates.paginationPaddingTop !== undefined) payload.pagination_padding_top = updates.paginationPaddingTop;
-    if (updates.paginationPaddingBottom !== undefined) payload.pagination_padding_bottom = updates.paginationPaddingBottom;
+    // Les réglages de pagination (marges/padding) ne sont pas synchronisés en BDD (réglages d'affichage locaux uniquement)
     return payload;
   };
 

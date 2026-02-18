@@ -53,10 +53,11 @@ export const loadSettingsFromSource = async (
       category: settings?.category || defaultConfig.category,
       matchDate: settings?.match_date || defaultConfig.matchDate,
       location: settings?.location || defaultConfig.location,
-      paginationMarginTop: settings?.pagination_margin_top !== undefined ? Number(settings.pagination_margin_top) : defaultConfig.paginationMarginTop,
-      paginationMarginBottom: settings?.pagination_margin_bottom !== undefined ? Number(settings.pagination_margin_bottom) : defaultConfig.paginationMarginBottom,
-      paginationPaddingTop: settings?.pagination_padding_top !== undefined ? Number(settings.pagination_padding_top) : defaultConfig.paginationPaddingTop,
-      paginationPaddingBottom: settings?.pagination_padding_bottom !== undefined ? Number(settings.pagination_padding_bottom) : defaultConfig.paginationPaddingBottom,
+      // Les réglages de pagination restent locaux (pas chargés depuis la BDD)
+      paginationMarginTop: defaultConfig.paginationMarginTop,
+      paginationMarginBottom: defaultConfig.paginationMarginBottom,
+      paginationPaddingTop: defaultConfig.paginationPaddingTop,
+      paginationPaddingBottom: defaultConfig.paginationPaddingBottom,
     };
 
     return { config, adapter, teams: teams || [] };
