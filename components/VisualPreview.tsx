@@ -10,6 +10,7 @@ interface Props {
 
 const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, victoryPhoto }, ref) => {
   const isCompact = matches.length >= 4;
+  const isThreeMatches = matches.length === 3;
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = 'none';
@@ -283,7 +284,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           ))}
         </div>
 
-        <div className="w-full flex flex-col items-center shrink-0" style={{ paddingTop: isCompact ? '8px' : '20px', paddingBottom: isCompact ? '6px' : '44px' }}>
+        <div className="w-full flex flex-col items-center shrink-0" style={{ paddingTop: isCompact ? '8px' : '20px', paddingBottom: isCompact ? '6px' : isThreeMatches ? '20px' : '44px' }}>
           {config.showSlideIndicator ? (
             <div className="flex items-center justify-center gap-3 py-5 min-h-[52px]">
               {Array.from({ length: config.totalSlides }).map((_, i) => (
