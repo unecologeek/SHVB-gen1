@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { jsonResponse } from '../settings/shared.js';
 
 export type TeamRow = { id: string; name: string; logo: string; is_local: boolean };
 
@@ -21,8 +22,9 @@ export function withCors(
     return;
   }
   return Promise.resolve(handler()).catch((err) => {
-    console.error('[API]', err);
-    if (!res.headersSent) res.status(500).json({ error: (err as Error)?.message || 'Internal error', code: 'INTERNAL' });
+    const msg = String((err as Error)?.message || 'Internal error');
+    console.error('[API]', msg, err);
+    if (!res.headersSent) jsonResponse(res, 500, { error: msg, code: 'INTERNAL' });
   });
 }
 

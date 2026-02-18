@@ -22,8 +22,9 @@ export function withCors(
     return;
   }
   return Promise.resolve(handler()).catch((err) => {
-    console.error('[API]', err);
-    if (!res.headersSent) res.status(500).json({ error: (err as Error)?.message || 'Internal error', code: 'INTERNAL' });
+    const msg = String((err as Error)?.message || 'Internal error');
+    console.error('[API]', msg, err);
+    if (!res.headersSent) jsonResponse(res, 500, { error: msg, code: 'INTERNAL' });
   });
 }
 
@@ -31,9 +32,13 @@ export function withCors(
 export function jsonResponse(res: VercelResponse, status: number, data: unknown): void {
   try {
     const payload = JSON.parse(JSON.stringify(data));
-    res.status(status).json(payload);
-  } catch {
-    res.status(status).json(data);
+    const body = JSON.stringify(payload);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(status).end(body);
+  } catch (e) {
+    console.error('[API] jsonResponse serialize error:', String((e as Error)?.message));
+    res.setHeader('Content-Type', 'application/json');
+    res.status(status).end(JSON.stringify({ error: 'Serialization error', code: 'INTERNAL' }));
   }
 }
 
@@ -66,8 +71,14 @@ function getAivenPool(): pg.Pool | null {
     process.env.shvb_AIVEN_DATABASE_URL ??
     process.env.DATABASE_URL ??
     process.env.shvb_DATABASE_URL;
-  if (!url || typeof url !== 'string' || !url.trim()) return null;
+  const source = process.env.AIVEN_DATABASE_URL ? 'AIVEN_DATABASE_URL' : process.env.shvb_AIVEN_DATABASE_URL ? 'shvb_AIVEN_DATABASE_URL' : process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.shvb_DATABASE_URL ? 'shvb_DATABASE_URL' : 'none';
+  console.log('[Aiven] getAivenPool: source=', source, 'urlPresent=', !!url, 'urlLength=', typeof url === 'string' ? url.length : 0);
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    console.log('[Aiven] getAivenPool: no URL, returning null');
+    return null;
+  }
   if (!aivenPool) {
+    console.log('[Aiven] getAivenPool: creating new Pool');
     aivenPool = new Pool({
       connectionString: url,
       // Aiven utilise un certificat que Node ne truste pas par défaut en serverless ; connexion toujours chiffrée (TLS).
@@ -83,10 +94,19 @@ function getAivenPool(): pg.Pool | null {
  */
 export function getSql(): SqlTag | null {
   const pool = getAivenPool();
+  console.log('[Aiven] getSql: pool=', !!pool);
   if (!pool) return null;
   return async (strings: TemplateStringsArray, ...values: unknown[]) => {
     const { text, values: params } = buildQuery(strings, values);
-    const result = await pool.query(text, params);
-    return toPlainRows(result.rows);
+    console.log('[Aiven] query: text (first 80 chars)=', text.slice(0, 80));
+    try {
+      const result = await pool.query(text, params);
+      console.log('[Aiven] query ok, rowCount=', result?.rowCount ?? result?.rows?.length ?? 0);
+      return toPlainRows(result.rows);
+    } catch (queryErr: unknown) {
+      const qMsg = String((queryErr as Error)?.message);
+      console.error('[Aiven] query error:', qMsg);
+      throw queryErr;
+    }
   };
 }

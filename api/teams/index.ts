@@ -7,20 +7,25 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   // #endregion
   return withCors(req, res, async () => {
     try {
+      console.log('[api/teams] GET: getSql()...');
       const sql = getSql();
       if (!sql) {
+        console.log('[api/teams] getSql()=null → 503 NO_DATABASE');
         jsonResponse(res, 503, { error: 'Database not configured', code: 'NO_DATABASE' });
         return;
       }
+      console.log('[api/teams] getSql() ok, running SELECT teams...');
 
       if (req.method === 'GET') {
         const rows = (await sql`SELECT id, name, logo, is_local FROM teams ORDER BY name`) as TeamRow[];
+        console.log('[api/teams] SELECT ok, rows=', rows?.length ?? 0);
         const data = rows.map((r) => ({
           id: String(r.id),
           name: r.name,
           logo: r.logo ?? '',
           is_local: Boolean(r.is_local),
         }));
+        console.log('[api/teams] sending 200 data.length=', data.length);
         jsonResponse(res, 200, { data });
         return;
       }
@@ -51,11 +56,12 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return;
       }
 
-      res.status(405).json({ error: 'Method not allowed', code: 'METHOD' });
+      jsonResponse(res, 405, { error: 'Method not allowed', code: 'METHOD' });
     } catch (err) {
-      console.error('[api/teams]', err);
+      const msg = String((err as Error)?.message || 'Internal error');
+      console.error('[api/teams] catch:', msg, err);
       if (!res.headersSent) {
-        jsonResponse(res, 500, { error: (err as Error)?.message || 'Internal error', code: 'INTERNAL' });
+        jsonResponse(res, 500, { error: msg, code: 'INTERNAL' });
       }
     }
   });
