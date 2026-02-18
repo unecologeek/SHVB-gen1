@@ -44,6 +44,8 @@ export interface DatabaseAdapter {
   
   // Images de fond
   getBackgroundImage(type: BackgroundImageType): Promise<string | null>;
+  /** Récupère les 3 images en une requête (réduit les connexions DB). */
+  getAllBackgroundImages(): Promise<{ results: string | null; preview: string | null; victory: string | null }>;
   setBackgroundImage(type: BackgroundImageType, imageData: string): Promise<void>;
   
   // Vérification de santé
@@ -258,6 +260,14 @@ export class SupabaseAdapter implements DatabaseAdapter {
     }
   }
 
+  async getAllBackgroundImages(): Promise<{ results: string | null; preview: string | null; victory: string | null }> {
+    return {
+      results: await this.getBackgroundImage('results'),
+      preview: await this.getBackgroundImage('preview'),
+      victory: await this.getBackgroundImage('victory')
+    };
+  }
+
   async setBackgroundImage(type: BackgroundImageType, imageData: string): Promise<void> {
     this.guard();
     try {
@@ -365,12 +375,29 @@ export class AivenAdapter implements DatabaseAdapter {
     try {
       const res = await this.api(`/background-images/${type}`);
       if (res.status === 404) return null;
-      const json = (await res.json()) as { data?: string; error?: string };
+      const json = await res.json().catch(() => ({})) as { data?: string; error?: string };
       if (!res.ok) throw { message: json.error || res.statusText, code: res.status };
       return json.data || null;
     } catch (error: any) {
       console.error('[AIVEN] Erreur lors de la récupération de l\'image de fond:', error);
       return null;
+    }
+  }
+
+  async getAllBackgroundImages(): Promise<{ results: string | null; preview: string | null; victory: string | null }> {
+    try {
+      const res = await this.api('/background-images');
+      const json = await res.json().catch(() => ({})) as { data?: Record<string, string | null>; error?: string };
+      if (!res.ok) throw { message: json.error || res.statusText, code: res.status };
+      const d = json.data ?? {};
+      return {
+        results: typeof d.results === 'string' ? d.results : null,
+        preview: typeof d.preview === 'string' ? d.preview : null,
+        victory: typeof d.victory === 'string' ? d.victory : null
+      };
+    } catch (error: any) {
+      console.error('[AIVEN] Erreur getAllBackgroundImages:', error);
+      return { results: null, preview: null, victory: null };
     }
   }
 

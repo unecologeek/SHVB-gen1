@@ -25,7 +25,9 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
-        jsonResponse(res, 200, { data: rows[0].image_data });
+        const image_data = rows[0].image_data;
+        const data = typeof image_data === 'string' ? image_data : '';
+        jsonResponse(res, 200, { data });
         return;
       }
 

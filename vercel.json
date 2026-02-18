@@ -1,9 +1,23 @@
 {
   "buildCommand": "npm run build",
   "functions": {
-    "api/teams/index.ts": {"includeFiles": "api/teams/shared.ts"},
-    "api/teams/[id].ts": {"includeFiles": "api/teams/shared.ts"},
-    "api/teams/set-local.ts": {"includeFiles": "api/teams/shared.ts"},
-    "api/settings/index.ts": {"includeFiles": "api/settings/shared.ts"}
+    "api/teams/index.ts": {
+      "includeFiles": "api/teams/shared.ts"
+    },
+    "api/teams/[id].ts": {
+      "includeFiles": "api/teams/shared.ts"
+    },
+    "api/teams/set-local.ts": {
+      "includeFiles": "api/teams/shared.ts"
+    },
+    "api/settings/index.ts": {
+      "includeFiles": "api/settings/shared.ts"
+    },
+    "api/background-images/index.ts": {
+      "includeFiles": "api/settings/shared.ts"
+    },
+    "api/background-images/[type].ts": {
+      "includeFiles": "api/settings/shared.ts"
+    }
   }
 }

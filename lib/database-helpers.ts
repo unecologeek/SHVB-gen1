@@ -25,19 +25,18 @@ export const loadSettingsFromSource = async (
 
     const settings = await withRetry(
       () => adapter.getSettings(),
-      {
-        maxRetries: 2,
-        initialDelay: 1000,
-        retryable: isRetryableError
-      }
+      { maxRetries: 2, initialDelay: 1000, retryable: isRetryableError }
     );
 
-    const [resultsBg, previewBg, victoryBg, teams] = await Promise.all([
-      adapter.getBackgroundImage('results'),
-      adapter.getBackgroundImage('preview'),
-      adapter.getBackgroundImage('victory'),
-      withRetry(() => adapter.getTeams(), { maxRetries: 2, initialDelay: 1000, retryable: isRetryableError })
-    ]);
+    // Une seule requête pour les 3 images (1 connexion au lieu de 3)
+    const bgs = await adapter.getAllBackgroundImages();
+    const teams = await withRetry(
+      () => adapter.getTeams(),
+      { maxRetries: 2, initialDelay: 1000, retryable: isRetryableError }
+    );
+    const resultsBg = bgs.results;
+    const previewBg = bgs.preview;
+    const victoryBg = bgs.victory;
 
     const config: AppConfig = {
       ...defaultConfig,
