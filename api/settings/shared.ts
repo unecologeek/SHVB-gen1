@@ -60,7 +60,12 @@ export type SqlTag = (strings: TemplateStringsArray, ...values: unknown[]) => Pr
 let aivenPool: pg.Pool | null = null;
 
 function getAivenPool(): pg.Pool | null {
-  const url = process.env.AIVEN_DATABASE_URL ?? process.env.shvb_AIVEN_DATABASE_URL;
+  // Priorité : variables Aiven, puis fallback sur anciennes variables (ex. DATABASE_URL sur Vercel)
+  const url =
+    process.env.AIVEN_DATABASE_URL ??
+    process.env.shvb_AIVEN_DATABASE_URL ??
+    process.env.DATABASE_URL ??
+    process.env.shvb_DATABASE_URL;
   if (!url || typeof url !== 'string' || !url.trim()) return null;
   if (!aivenPool) {
     aivenPool = new Pool({
@@ -74,7 +79,7 @@ function getAivenPool(): pg.Pool | null {
 
 /**
  * Retourne une fonction "tag" sql pour Aiven (pg, PostgreSQL standard, SSL).
- * Retourne null si AIVEN_DATABASE_URL / shvb_AIVEN_DATABASE_URL est absent.
+ * Lit AIVEN_DATABASE_URL ou shvb_AIVEN_DATABASE_URL ; en fallback DATABASE_URL ou shvb_DATABASE_URL (ancienne config).
  */
 export function getSql(): SqlTag | null {
   const pool = getAivenPool();

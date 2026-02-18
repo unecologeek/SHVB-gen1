@@ -37,12 +37,13 @@ Le programme tente de se connecter aux sources **en cascade** : Aiven d’abord 
 
 ### Aiven – PostgreSQL (priorité 1)
 
-Première option testée. Les routes API (`/api/teams`, `/api/settings`, etc.) utilisent la variable `AIVEN_DATABASE_URL` (ou `shvb_AIVEN_DATABASE_URL` sur Vercel). La connexion utilise SSL (`sslmode=require`). Appliquer le schéma une fois sur la base Aiven : [scripts/aiven-schema.sql](scripts/aiven-schema.sql) (tables `teams`, `settings`, `background_images`).
+Première option testée. Les routes API (`/api/teams`, `/api/settings`, etc.) lisent l’URI PostgreSQL dans l’ordre : `AIVEN_DATABASE_URL`, puis `shvb_AIVEN_DATABASE_URL`, puis en fallback `DATABASE_URL` ou `shvb_DATABASE_URL` (ancienne config). La connexion utilise SSL (`sslmode=require`). Appliquer le schéma une fois sur la base Aiven : [scripts/aiven-schema.sql](scripts/aiven-schema.sql) (tables `teams`, `settings`, `background_images`).
 
 | Variable | Côté | Description | Requis |
 |----------|------|--------------|--------|
-| `AIVEN_DATABASE_URL` | Serveur/API | URI de connexion PostgreSQL (ex. `postgres://user:pass@host:port/defaultdb?sslmode=require`). | Oui, pour Aiven |
-| `shvb_AIVEN_DATABASE_URL` | Serveur/API (Vercel) | Même usage que `AIVEN_DATABASE_URL` (priorité sur Vercel). | Optionnel |
+| `AIVEN_DATABASE_URL` | Serveur/API | URI PostgreSQL (ex. `postgres://user:pass@host:port/defaultdb?sslmode=require`). | Oui, pour Aiven |
+| `shvb_AIVEN_DATABASE_URL` | Serveur/API (Vercel) | Même usage (priorité sur Vercel). | Optionnel |
+| `DATABASE_URL` / `shvb_DATABASE_URL` | Serveur/API | Fallback si les variables Aiven ne sont pas définies (ex. ancienne config avec URI Aiven). | Optionnel |
 | `VITE_API_URL` | Frontend | Base URL de l’API si elle tourne ailleurs (ex. `http://localhost:3000`). | Optionnel |
 
 ### Supabase (priorité 2)
