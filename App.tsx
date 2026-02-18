@@ -49,9 +49,19 @@ const App: React.FC = () => {
   const previewRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cache = useLocalCache();
+  /** Cache des logos par id pour éviter de recréer les références et recharger les images à chaque affichage. */
+  const logoCacheRef = useRef<Record<string, string>>({});
 
   const localTeam = useMemo(() => availableTeams.find(t => t.is_local), [availableTeams]);
   const currentDimensions = useMemo(() => config.visualType === 'victory' ? { width: 1080, height: 1920 } : { width: 1080, height: 1080 }, [config.visualType]);
+
+  /** Liste avec logos issus du cache quand inchangés, pour éviter de recharger les images à chaque rendu. */
+  const teamsWithCachedLogos = useMemo(() => {
+    return availableTeams.map(t => {
+      const cached = t.id ? logoCacheRef.current[t.id] : undefined;
+      return cached !== undefined && cached === t.logo ? { ...t, logo: cached } : t;
+    });
+  }, [availableTeams]);
 
   const updateScale = useCallback(() => {
     if (!containerRef.current) return;
@@ -70,7 +80,10 @@ const App: React.FC = () => {
   const loadFromCache = useCallback(() => {
     const { config: cachedConfig, teams: cachedTeams } = cache.loadAll();
     if (cachedConfig) setConfig(cachedConfig);
-    if (cachedTeams) setAvailableTeams(cachedTeams);
+    if (cachedTeams) {
+      cachedTeams.forEach((t: TeamData) => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
+      setAvailableTeams(cachedTeams);
+    }
     return !!cachedConfig;
   }, [cache]);
 
@@ -81,7 +94,11 @@ const App: React.FC = () => {
       if (source === 'AIVEN' || source === 'SUPABASE') {
         const dbAdapter = adapter ?? createDatabaseAdapter(source);
         const teams = await dbAdapter.getTeams();
-        setAvailableTeams(teams);
+        teams.forEach(t => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
+        setAvailableTeams(prev => {
+          if (prev.length === teams.length && teams.every((t, i) => t.id === prev[i]?.id && t.name === prev[i]?.name && t.logo === prev[i]?.logo)) return prev;
+          return teams;
+        });
         console.log(`✅ [${source}] ${teams.length} clubs récupérés.`);
         return true;
       }
@@ -107,6 +124,7 @@ const App: React.FC = () => {
     if (aivenResult) {
       console.log("✅ [AIVEN] Connexion réussie.");
       setConfig(aivenResult.config);
+      aivenResult.teams.forEach(t => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
       setAvailableTeams(aivenResult.teams);
       setActiveSource(DB_SOURCE.AIVEN);
       cache.saveAll(aivenResult.config, aivenResult.teams);
@@ -120,6 +138,7 @@ const App: React.FC = () => {
     if (supabaseResult) {
       console.log("✅ [SUPABASE] Connexion réussie.");
       setConfig(supabaseResult.config);
+      supabaseResult.teams.forEach(t => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
       setAvailableTeams(supabaseResult.teams);
       setActiveSource(DB_SOURCE.SUPABASE);
       cache.saveAll(supabaseResult.config, supabaseResult.teams);
@@ -137,6 +156,7 @@ const App: React.FC = () => {
       const res = await fetch('teams.json').catch(() => null);
       if (res?.ok) {
         const localData = await res.json();
+        (localData as TeamData[]).forEach(t => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
         setAvailableTeams(localData);
         console.log("✅ [LOCAL] Données teams.json chargées.");
       }
@@ -230,9 +250,25 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {showDatabase && <div className="animate-in slide-in-from-top-8 duration-500"><TeamDatabaseManager onTeamsChange={() => fetchTeams(activeSource)} availableTeams={availableTeams} loadingTeams={loadingTeams} activeSource={activeSource} /></div>}
+          {showDatabase && (
+            <div className="animate-in slide-in-from-top-8 duration-500">
+              <TeamDatabaseManager
+                onTeamsChange={(newTeams) => {
+                  if (newTeams?.length) {
+                    newTeams.forEach(t => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
+                    setAvailableTeams(prev => [...prev, ...newTeams]);
+                  } else {
+                    fetchTeams(activeSource);
+                  }
+                }}
+                availableTeams={teamsWithCachedLogos}
+                loadingTeams={loadingTeams}
+                activeSource={activeSource}
+              />
+            </div>
+          )}
 
-          <EditorPanel config={config} setConfig={setConfig} matches={matches} setMatches={setMatches} availableTeams={availableTeams} victoryPhoto={victoryPhoto} setVictoryPhoto={setVictoryPhoto} activeSource={activeSource} />
+          <EditorPanel config={config} setConfig={setConfig} matches={matches} setMatches={setMatches} availableTeams={teamsWithCachedLogos} victoryPhoto={victoryPhoto} setVictoryPhoto={setVictoryPhoto} activeSource={activeSource} />
           
           <button 
             disabled={isExporting} 

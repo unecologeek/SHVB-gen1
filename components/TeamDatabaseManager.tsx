@@ -1,7 +1,6 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';
-import { DatabaseAdapter, DatabaseSource, TeamData, createDatabaseAdapter } from '../lib/db-adapter';
+import { DatabaseAdapter, TeamData, createDatabaseAdapter } from '../lib/db-adapter';
 import { ConnectionSource } from '../types';
 
 interface PendingTeam {
@@ -11,13 +10,15 @@ interface PendingTeam {
 }
 
 interface Props {
-  onTeamsChange: () => void;
+  /** Appelé après mutation. Si `newTeams` est fourni, le parent peut fusionner au lieu de refetch. */
+  onTeamsChange: (newTeams?: TeamData[]) => void;
   availableTeams: TeamData[];
   loadingTeams: boolean;
   activeSource: ConnectionSource;
 }
 
 const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, loadingTeams, activeSource }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingTeams, setPendingTeams] = useState<PendingTeam[]>([]);
   const [importing, setImporting] = useState(false);
@@ -63,11 +64,26 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
     }
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) e.dataTransfer.dropEffect = 'copy';
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
     handleFiles(e.dataTransfer.files);
   };
+
+  const openFilePicker = () => fileInputRef.current?.click();
 
   const getAdapter = (): DatabaseAdapter | null => {
     if (activeSource === 'AIVEN' || activeSource === 'SUPABASE') {
@@ -93,19 +109,18 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
     console.log(`📡 Envoi de ${validTeams.length} nouveaux clubs vers ${adapter.source}...`);
     try {
       setImporting(true);
-      
-      // Créer les équipes une par une
+      const created: TeamData[] = [];
       for (const team of validTeams) {
-        await adapter.createTeam({
+        const createdTeam = await adapter.createTeam({
           name: team.name,
           logo: team.logo,
           is_local: false
         });
+        created.push(createdTeam);
       }
-      
       console.log(`✅ ${validTeams.length} nouveaux clubs enregistrés dans ${adapter.source}.`);
       setPendingTeams([]);
-      onTeamsChange();
+      onTeamsChange(created);
     } catch (err: any) {
       console.error(`❌ Erreur lors de l'enregistrement des clubs (${adapter.source}):`, err);
       alert(`Erreur: ${err.message || err.hint || `Problème réseau ${adapter.source}`}`);
@@ -220,22 +235,41 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
           {(loadingTeams || updatingId) && <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.8)]"></div>}
         </div>
           
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+          className="sr-only"
+          aria-hidden
+        />
+        <button
+          type="button"
+          onClick={openFilePicker}
+          className="shrink-0 w-full bg-orange-600 hover:bg-orange-500 active:scale-[0.98] text-xs font-black py-3.5 px-6 rounded-2xl uppercase transition-all shadow-lg border-2 border-orange-500/30"
+        >
+          + Ajouter des clubs (fichiers ou glisser-déposer)
+        </button>
         <div 
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-          onDragLeave={() => setIsDragging(false)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFilePicker(); } }}
+          onClick={openFilePicker}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`
-            shrink-0 relative border-[3px] border-dashed rounded-[32px] p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 group cursor-pointer
-            ${isDragging ? 'border-orange-500 bg-orange-500/10 scale-95' : 'border-gray-700 hover:border-gray-500 bg-gray-800/30'}
+            shrink-0 relative border-[3px] border-dashed rounded-[32px] p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 group cursor-pointer select-none
+            ${isDragging ? 'border-orange-500 bg-orange-500/10 scale-[0.98]' : 'border-gray-700 hover:border-gray-500 bg-gray-800/30'}
           `}
         >
-          <input type="file" multiple accept="image/*" onChange={(e) => handleFiles(e.target.files)} className="absolute inset-0 opacity-0 cursor-pointer" />
           <div className="w-14 h-14 bg-gray-800 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shadow-xl border border-white/5">
             <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
           </div>
           <div className="text-center">
-            <p className="text-xs font-black uppercase tracking-widest leading-none">Déposer les logos</p>
-            <p className="text-[10px] font-bold text-gray-500 mt-2">Glisser-déposer vos fichiers ici</p>
+            <p className="text-xs font-black uppercase tracking-widest leading-none">Déposer les logos ici</p>
+            <p className="text-[10px] font-bold text-gray-500 mt-2">ou cliquer pour parcourir</p>
           </div>
         </div>
 

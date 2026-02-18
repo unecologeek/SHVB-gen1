@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { AppConfig, Match, VisualType, ConnectionSource } from '../types';
 import { DB_SOURCE } from '../types';
 import { supabase } from '../lib/supabase';
