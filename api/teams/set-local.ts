@@ -15,8 +15,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return;
       }
 
-      const db = (req.query as { db?: string })?.db === 'aiven' ? 'aiven' : 'neon';
-      const sql = getSql(db);
+      const sql = getSql();
       if (!sql) {
         jsonResponse(res, 503, { error: 'Database not configured', code: 'NO_DATABASE' });
         return;

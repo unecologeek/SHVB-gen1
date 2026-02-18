@@ -6,6 +6,7 @@ export default defineSchema({
     name: v.string(),
     logo: v.string(),
     is_local: v.boolean(),
+    created_at: v.optional(v.number()),
   }),
   settings: defineTable({
     title: v.optional(v.string()),
@@ -20,6 +21,8 @@ export default defineSchema({
     category: v.optional(v.string()),
     match_date: v.optional(v.string()),
     location: v.optional(v.string()),
+    settingId: v.optional(v.number()),
+    updated_at: v.optional(v.number()),
   }),
   background_images: defineTable({
     type: v.string(), // 'results', 'preview', 'victory'

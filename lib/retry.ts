@@ -118,7 +118,6 @@ export const isRetryableError = (error: any): boolean => {
     return true;
   }
 
-  // Erreurs spécifiques Appwrite (mais pas CORS)
   if (error.type === 'network_error' || error.type === 'timeout') {
     return true;
   }

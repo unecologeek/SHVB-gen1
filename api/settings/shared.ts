@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { neon } from '@neondatabase/serverless';
 import pg from 'pg';
 
 const { Pool } = pg;
@@ -38,8 +37,6 @@ export function jsonResponse(res: VercelResponse, status: number, data: unknown)
   }
 }
 
-export type PostgresSource = 'neon' | 'aiven';
-
 /** Convertit des lignes BDD en objets 100 % sérialisables (évite XrayWrapper sur Vercel). */
 function toPlainRows(rows: unknown[]): Record<string, unknown>[] {
   try {
@@ -76,25 +73,15 @@ function getAivenPool(): pg.Pool | null {
 }
 
 /**
- * Retourne une fonction "tag" sql pour Neon ou Aiven.
- * - Neon : @neondatabase/serverless (protocole Neon).
- * - Aiven : pg (PostgreSQL standard, SSL). Réponses toujours en objets sérialisables.
+ * Retourne une fonction "tag" sql pour Aiven (pg, PostgreSQL standard, SSL).
+ * Retourne null si AIVEN_DATABASE_URL / shvb_AIVEN_DATABASE_URL est absent.
  */
-export function getSql(source: PostgresSource = 'neon'): SqlTag | null {
-  if (source === 'aiven') {
-    const pool = getAivenPool();
-    if (!pool) return null;
-    return async (strings: TemplateStringsArray, ...values: unknown[]) => {
-      const { text, values: params } = buildQuery(strings, values);
-      const result = await pool.query(text, params);
-      return toPlainRows(result.rows);
-    };
-  }
-  const url = process.env.shvb_DATABASE_URL ?? process.env.DATABASE_URL;
-  if (!url || typeof url !== 'string' || !url.trim()) return null;
-  const neonSql = neon(url);
+export function getSql(): SqlTag | null {
+  const pool = getAivenPool();
+  if (!pool) return null;
   return async (strings: TemplateStringsArray, ...values: unknown[]) => {
-    const rows = await neonSql(strings as unknown as TemplateStringsArray, ...values);
-    return toPlainRows(rows as unknown[]);
+    const { text, values: params } = buildQuery(strings, values);
+    const result = await pool.query(text, params);
+    return toPlainRows(result.rows);
   };
 }

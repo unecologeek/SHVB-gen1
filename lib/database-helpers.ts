@@ -1,16 +1,14 @@
-
-import { DatabaseAdapter, DatabaseSource, tryConnectDatabase, createDatabaseAdapter, TeamData, SettingsData } from './db-adapter';
+import { DatabaseAdapter, DatabaseSource, tryConnectDatabase, TeamData, SettingsData } from './db-adapter';
 import { AppConfig } from '../types';
 import { withRetry, isRetryableError } from './retry';
-import { isConvexReady } from './convex';
 
 /**
- * Tente de charger les paramètres depuis une source de base de données
+ * Tente de charger les paramètres et les équipes depuis une source (un seul getTeams pour optimiser).
  */
 export const loadSettingsFromSource = async (
   source: DatabaseSource,
   defaultConfig: AppConfig
-): Promise<{ config: AppConfig; adapter: DatabaseAdapter } | null> => {
+): Promise<{ config: AppConfig; adapter: DatabaseAdapter; teams: TeamData[] } | null> => {
   try {
     const adapter = await withRetry(
       () => tryConnectDatabase(source),
@@ -34,75 +32,48 @@ export const loadSettingsFromSource = async (
       }
     );
 
-    if (!settings) {
-      return { config: defaultConfig, adapter };
-    }
-
-    // Charger les images de fond séparément
-    const [resultsBg, previewBg, victoryBg] = await Promise.all([
+    const [resultsBg, previewBg, victoryBg, teams] = await Promise.all([
       adapter.getBackgroundImage('results'),
       adapter.getBackgroundImage('preview'),
-      adapter.getBackgroundImage('victory')
+      adapter.getBackgroundImage('victory'),
+      withRetry(() => adapter.getTeams(), { maxRetries: 2, initialDelay: 1000, retryable: isRetryableError })
     ]);
 
     const config: AppConfig = {
       ...defaultConfig,
-      title: settings.title || defaultConfig.title,
-      subtitle: settings.subtitle || defaultConfig.subtitle,
+      title: settings?.title || defaultConfig.title,
+      subtitle: settings?.subtitle || defaultConfig.subtitle,
       resultsBg: resultsBg || defaultConfig.resultsBg,
       previewBg: previewBg || defaultConfig.previewBg,
       victoryBg: victoryBg || defaultConfig.victoryBg,
-      victoryPhotoFocus: (settings.victory_photo_focus_x !== undefined && settings.victory_photo_focus_y !== undefined) 
+      victoryPhotoFocus: (settings?.victory_photo_focus_x !== undefined && settings?.victory_photo_focus_y !== undefined)
         ? { x: Number(settings.victory_photo_focus_x), y: Number(settings.victory_photo_focus_y) }
         : defaultConfig.victoryPhotoFocus,
-      mainColor: settings.main_color || defaultConfig.mainColor,
-      visualType: (settings.visual_type as any) || defaultConfig.visualType,
-      category: settings.category || defaultConfig.category,
-      matchDate: settings.match_date || defaultConfig.matchDate,
-      location: settings.location || defaultConfig.location
+      mainColor: settings?.main_color || defaultConfig.mainColor,
+      visualType: (settings?.visual_type as any) || defaultConfig.visualType,
+      category: settings?.category || defaultConfig.category,
+      matchDate: settings?.match_date || defaultConfig.matchDate,
+      location: settings?.location || defaultConfig.location
     };
 
-    return { config, adapter };
+    return { config, adapter, teams: teams || [] };
   } catch (error: any) {
-    console.warn(`⚠️ [${source}] Erreur lors du chargement des paramètres:`, error);
+    console.warn(`⚠️ [${source}] Erreur lors du chargement:`, error);
     return null;
   }
 };
 
 /**
- * Charge les équipes depuis une source de base de données
+ * Tente de se connecter à Aiven PostgreSQL (API) et charger les données
  */
-export const loadTeamsFromSource = async (
-  adapter: DatabaseAdapter
-): Promise<TeamData[]> => {
-  try {
-    return await withRetry(
-      () => adapter.getTeams(),
-      {
-        maxRetries: 2,
-        initialDelay: 1000,
-        retryable: isRetryableError
-      }
-    );
-  } catch (error: any) {
-    console.error(`❌ Erreur lors du chargement des équipes (${adapter.source}):`, error);
-    return [];
-  }
-};
-
-/**
- * Tente de se connecter à Appwrite et charger les données
- */
-export const tryConnectAppwrite = async (
+export const tryConnectAiven = async (
   defaultConfig: AppConfig
 ): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
-  const result = await loadSettingsFromSource('APPWRITE', defaultConfig);
+  const result = await loadSettingsFromSource('AIVEN', defaultConfig);
   if (!result) return null;
-
-  const teams = await loadTeamsFromSource(result.adapter);
   return {
     config: result.config,
-    teams,
+    teams: result.teams,
     adapter: result.adapter
   };
 };
@@ -115,72 +86,9 @@ export const tryConnectSupabase = async (
 ): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
   const result = await loadSettingsFromSource('SUPABASE', defaultConfig);
   if (!result) return null;
-
-  const teams = await loadTeamsFromSource(result.adapter);
   return {
     config: result.config,
-    teams,
-    adapter: result.adapter
-  };
-};
-
-/**
- * Tente de se connecter à Convex et charger les données
- */
-export const tryConnectConvex = async (
-  defaultConfig: AppConfig
-): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
-  if (!isConvexReady()) {
-    console.warn("⚠️ [CONVEX] VITE_CONVEX_URL non définie dans .env.local - passage à la source suivante");
-    return null;
-  }
-  
-  try {
-    const result = await loadSettingsFromSource('CONVEX', defaultConfig);
-    if (!result) return null;
-
-    const teams = await loadTeamsFromSource(result.adapter);
-    return {
-      config: result.config,
-      teams,
-      adapter: result.adapter
-    };
-  } catch (error: any) {
-    console.error("❌ [CONVEX] Erreur de connexion:", error?.message || error);
-    return null;
-  }
-};
-
-/**
- * Tente de se connecter à Neon (API) et charger les données
- */
-export const tryConnectNeon = async (
-  defaultConfig: AppConfig
-): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
-  const result = await loadSettingsFromSource('NEON', defaultConfig);
-  if (!result) return null;
-
-  const teams = await loadTeamsFromSource(result.adapter);
-  return {
-    config: result.config,
-    teams,
-    adapter: result.adapter
-  };
-};
-
-/**
- * Tente de se connecter à Aiven PostgreSQL (API) et charger les données
- */
-export const tryConnectAiven = async (
-  defaultConfig: AppConfig
-): Promise<{ config: AppConfig; teams: TeamData[]; adapter: DatabaseAdapter } | null> => {
-  const result = await loadSettingsFromSource('AIVEN', defaultConfig);
-  if (!result) return null;
-
-  const teams = await loadTeamsFromSource(result.adapter);
-  return {
-    config: result.config,
-    teams,
+    teams: result.teams,
     adapter: result.adapter
   };
 };

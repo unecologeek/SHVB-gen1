@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AppConfig, Match, VisualType, ConnectionSource } from '../types';
 import { DB_SOURCE } from '../types';
-import { databases, APPWRITE_CONFIG, isAppwriteReady } from '../lib/appwrite';
 import { supabase } from '../lib/supabase';
 import { createDatabaseAdapter } from '../lib/db-adapter';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';

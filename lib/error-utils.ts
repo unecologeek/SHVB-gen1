@@ -42,13 +42,7 @@ export const isConnectionError = (error: any): boolean => {
     return true;
   }
 
-  // Erreurs spécifiques Appwrite de connexion
   if (type === 'network_error' || type === 'timeout') {
-    return true;
-  }
-
-  // Erreurs de connexion Convex
-  if (message.includes('convex') && (message.includes('connection') || message.includes('network'))) {
     return true;
   }
 

@@ -70,7 +70,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
   };
 
   const getAdapter = (): DatabaseAdapter | null => {
-    if (activeSource === 'CONVEX' || activeSource === 'NEON' || activeSource === 'AIVEN' || activeSource === 'APPWRITE' || activeSource === 'SUPABASE') {
+    if (activeSource === 'AIVEN' || activeSource === 'SUPABASE') {
       try {
         return createDatabaseAdapter(activeSource);
       } catch {
@@ -86,7 +86,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, availableTeams, l
     
     const adapter = getAdapter();
     if (!adapter) {
-      alert('Aucune connexion à la base de données disponible. Basculez vers Neon, Appwrite ou Supabase.');
+      alert('Aucune connexion à la base de données disponible. Basculez vers Aiven ou Supabase.');
       return;
     }
 

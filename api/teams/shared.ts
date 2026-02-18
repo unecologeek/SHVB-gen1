@@ -30,4 +30,4 @@ export function jsonResponse(res: VercelResponse, status: number, data: unknown)
   res.status(status).json(data);
 }
 
-export { getSql, type PostgresSource } from '../settings/shared.js';
+export { getSql } from '../settings/shared.js';
