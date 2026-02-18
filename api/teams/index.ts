@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withCors, jsonResponse, getSql, type TeamRow } from './shared.js';
+import { withCors, jsonResponse, getSql, getDatabaseDebugInfo, type TeamRow } from './shared.js';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   // #region agent log
@@ -10,8 +10,9 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       console.log('[api/teams] GET: getSql()...');
       const sql = getSql();
       if (!sql) {
-        console.log('[api/teams] getSql()=null → 503 NO_DATABASE');
-        jsonResponse(res, 503, { error: 'Database not configured', code: 'NO_DATABASE' });
+        const debug = getDatabaseDebugInfo();
+        console.log('[api/teams] getSql()=null → 503', debug);
+        jsonResponse(res, 503, { error: 'Database not configured', code: 'NO_DATABASE', debug });
         return;
       }
       console.log('[api/teams] getSql() ok, running SELECT teams...');
@@ -61,7 +62,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       const msg = String((err as Error)?.message || 'Internal error');
       console.error('[api/teams] catch:', msg, err);
       if (!res.headersSent) {
-        jsonResponse(res, 500, { error: msg, code: 'INTERNAL' });
+        const debug = getDatabaseDebugInfo();
+        jsonResponse(res, 500, { error: msg, code: 'INTERNAL', debug: { ...debug, step: 'catch' } });
       }
     }
   });

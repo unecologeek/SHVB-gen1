@@ -28,4 +28,4 @@ export function withCors(
   });
 }
 
-export { getSql, jsonResponse } from '../settings/shared.js';
+export { getSql, jsonResponse, getDatabaseDebugInfo } from '../settings/shared.js';

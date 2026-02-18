@@ -88,6 +88,17 @@ function getAivenPool(): pg.Pool | null {
   return aivenPool;
 }
 
+/** Infos debug 100 % sérialisables (pour affichage dans la réponse API / Network). */
+export function getDatabaseDebugInfo(): { envSource: string; urlPresent: boolean } {
+  const url =
+    process.env.AIVEN_DATABASE_URL ??
+    process.env.shvb_AIVEN_DATABASE_URL ??
+    process.env.DATABASE_URL ??
+    process.env.shvb_DATABASE_URL;
+  const envSource = process.env.AIVEN_DATABASE_URL ? 'AIVEN_DATABASE_URL' : process.env.shvb_AIVEN_DATABASE_URL ? 'shvb_AIVEN_DATABASE_URL' : process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.shvb_DATABASE_URL ? 'shvb_DATABASE_URL' : 'none';
+  return { envSource, urlPresent: !!(url && typeof url === 'string' && url.trim()) };
+}
+
 /**
  * Retourne une fonction "tag" sql pour Aiven (pg, PostgreSQL standard, SSL).
  * Lit AIVEN_DATABASE_URL ou shvb_AIVEN_DATABASE_URL ; en fallback DATABASE_URL ou shvb_DATABASE_URL (ancienne config).
