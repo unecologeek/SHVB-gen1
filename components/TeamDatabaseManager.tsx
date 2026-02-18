@@ -66,6 +66,15 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
     }
   };
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDragging(true);
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -75,6 +84,7 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
   };
 
@@ -82,7 +92,8 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    handleFiles(e.dataTransfer.files);
+    const files = e.dataTransfer?.files;
+    if (files?.length) handleFiles(files);
   };
 
   const openFilePicker = () => fileInputRef.current?.click();
@@ -246,32 +257,38 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
           className="sr-only"
           aria-hidden
         />
-        <button
-          type="button"
-          onClick={openFilePicker}
-          className="shrink-0 w-full bg-orange-600 hover:bg-orange-500 active:scale-[0.98] text-xs font-black py-3.5 px-6 rounded-2xl uppercase transition-all shadow-lg border-2 border-orange-500/30"
-        >
-          + Ajouter des clubs (fichiers ou glisser-déposer)
-        </button>
-        <div 
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFilePicker(); } }}
-          onClick={openFilePicker}
+        <div
+          className="shrink-0 flex flex-col gap-3"
+          onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`
-            shrink-0 relative border-[3px] border-dashed rounded-[32px] p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 group cursor-pointer select-none
-            ${isDragging ? 'border-orange-500 bg-orange-500/10 scale-[0.98]' : 'border-gray-700 hover:border-gray-500 bg-gray-800/30'}
-          `}
         >
-          <div className="w-14 h-14 bg-gray-800 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shadow-xl border border-white/5">
-            <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
-          </div>
-          <div className="text-center">
-            <p className="text-xs font-black uppercase tracking-widest leading-none">Déposer les logos ici</p>
-            <p className="text-[10px] font-bold text-gray-500 mt-2">ou cliquer pour parcourir</p>
+          <button
+            type="button"
+            onClick={openFilePicker}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; }}
+            className="shrink-0 w-full bg-orange-600 hover:bg-orange-500 active:scale-[0.98] text-xs font-black py-3.5 px-6 rounded-2xl uppercase transition-all shadow-lg border-2 border-orange-500/30"
+          >
+            + Ajouter des clubs (fichiers ou glisser-déposer)
+          </button>
+          <div
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFilePicker(); } }}
+            onClick={openFilePicker}
+            className={`
+              shrink-0 relative border-[3px] border-dashed rounded-[32px] p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 cursor-pointer select-none
+              ${isDragging ? 'border-orange-500 bg-orange-500/10 scale-[0.98]' : 'border-gray-700 hover:border-gray-500 bg-gray-800/30'}
+            `}
+          >
+            <div className="w-14 h-14 bg-gray-800 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shadow-xl border border-white/5">
+              <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-black uppercase tracking-widest leading-none">Déposer les logos ici</p>
+              <p className="text-[10px] font-bold text-gray-500 mt-2">ou cliquer pour parcourir</p>
+            </div>
           </div>
         </div>
 
@@ -320,10 +337,10 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
                       : 'bg-gray-800/40 border-transparent hover:border-gray-700'
                 }`}
               >
-                <div className="flex items-center gap-4 overflow-hidden">
-                  <div className="relative shrink-0">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="relative shrink-0 overflow-visible group/logo">
                     {editingId === team.id && editValues ? (
-                      <div className="relative group/edit-logo cursor-pointer overflow-hidden rounded-2xl w-12 h-12 border-2 border-blue-500 shadow-lg">
+                      <div className="relative group/edit-logo cursor-pointer overflow-hidden rounded-2xl w-12 h-12 border-2 border-blue-500 shadow-lg hover:scale-[4] hover:z-[100] hover:rounded-lg transition-transform duration-200 origin-center">
                         <img src={editValues.logo} className="w-full h-full object-contain" alt="" />
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/edit-logo:opacity-100 transition-opacity">
                           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
@@ -332,7 +349,9 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
                       </div>
                     ) : (
                       <>
-                        <img src={team.logo} className={`w-12 h-12 object-contain shrink-0 transition-all ${team.is_local ? 'scale-105' : ''}`} alt="" />
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center overflow-visible">
+                          <img src={team.logo} className={`w-12 h-12 object-contain shrink-0 transition-transform duration-200 origin-center group-hover/logo:scale-[4] group-hover/logo:z-[100] group-hover/logo:shadow-2xl group-hover/logo:rounded-lg ${team.is_local ? 'scale-105' : ''}`} alt="" />
+                        </div>
                         {team.is_local && <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-500 border-4 border-gray-900 rounded-full animate-pulse"></div>}
                       </>
                     )}
