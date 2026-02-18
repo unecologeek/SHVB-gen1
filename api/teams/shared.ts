@@ -26,8 +26,4 @@ export function withCors(
   });
 }
 
-export function jsonResponse(res: VercelResponse, status: number, data: unknown): void {
-  res.status(status).json(data);
-}
-
-export { getSql } from '../settings/shared.js';
+export { getSql, jsonResponse } from '../settings/shared.js';
