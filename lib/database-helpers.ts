@@ -31,7 +31,7 @@ export const loadSettingsFromSource = async (
     // Une seule requête pour les 3 images (1 connexion au lieu de 3)
     const bgs = await adapter.getAllBackgroundImages();
     const teams = await withRetry(
-      () => adapter.getTeams(),
+      () => adapter.getTeams(source === 'AIVEN' ? { noLogos: true } : undefined),
       { maxRetries: 2, initialDelay: 1000, retryable: isRetryableError }
     );
     const resultsBg = bgs.results;

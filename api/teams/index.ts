@@ -18,12 +18,15 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       console.log('[api/teams] getSql() ok, running SELECT teams...');
 
       if (req.method === 'GET') {
-        const rows = (await sql`SELECT id, name, logo, is_local FROM teams ORDER BY name`) as TeamRow[];
-        console.log('[api/teams] SELECT ok, rows=', rows?.length ?? 0);
+        const noLogos = req.query?.no_logos === '1' || req.query?.no_logos === 'true';
+        const rows = noLogos
+          ? ((await sql`SELECT id, name, is_local FROM teams ORDER BY name`) as Pick<TeamRow, 'id' | 'name' | 'is_local'>[])
+          : ((await sql`SELECT id, name, logo, is_local FROM teams ORDER BY name`) as TeamRow[]);
+        console.log('[api/teams] SELECT ok, rows=', rows?.length ?? 0, 'no_logos=', noLogos);
         const data = rows.map((r) => ({
           id: String(r.id),
           name: r.name,
-          logo: r.logo ?? '',
+          logo: noLogos || !('logo' in r) ? '' : (r as TeamRow).logo ?? '',
           is_local: Boolean(r.is_local),
         }));
         console.log('[api/teams] sending 200 data.length=', data.length);

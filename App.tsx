@@ -97,7 +97,7 @@ const App: React.FC = () => {
     try {
       if (source === 'AIVEN' || source === 'SUPABASE') {
         const dbAdapter = adapter ?? createDatabaseAdapter(source);
-        const teams = await dbAdapter.getTeams();
+        const teams = await dbAdapter.getTeams(source === 'AIVEN' ? { noLogos: true } : undefined);
         teams.forEach(t => { if (t.id && t.logo) logoCacheRef.current[t.id] = t.logo; });
         setAvailableTeams(prev => {
           if (prev.length === teams.length && teams.every((t, i) => t.id === prev[i]?.id && t.name === prev[i]?.name && t.logo === prev[i]?.logo && t.is_local === prev[i]?.is_local)) return prev;
@@ -118,6 +118,24 @@ const App: React.FC = () => {
       setLoadingTeams(false);
     }
   }, []);
+
+  const loadingLogoIdsRef = useRef<Set<string>>(new Set());
+  const loadTeamLogo = useCallback(async (id: string) => {
+    if (!id || logoCacheRef.current[id]) return;
+    if (loadingLogoIdsRef.current.has(id)) return;
+    if (activeSource !== 'AIVEN' && activeSource !== 'SUPABASE') return;
+    loadingLogoIdsRef.current.add(id);
+    try {
+      const adapter = createDatabaseAdapter(activeSource);
+      const team = await adapter.getTeam(id);
+      if (team?.logo) {
+        logoCacheRef.current[id] = team.logo;
+        setAvailableTeams(prev => prev.map(t => t.id === id ? { ...t, logo: team.logo } : t));
+      }
+    } finally {
+      loadingLogoIdsRef.current.delete(id);
+    }
+  }, [activeSource]);
 
   const loadAll = useCallback(async () => {
     console.log("🚀 Initialisation du Studio...");
@@ -180,6 +198,13 @@ const App: React.FC = () => {
       cache.saveAll(config, availableTeams);
     }
   }, [availableTeams, localTeam, config, cache]);
+
+  // Préchargement des logos en arrière-plan (liste initiale sans logos pour Aiven)
+  useEffect(() => {
+    if (activeSource !== 'AIVEN' && activeSource !== 'SUPABASE') return;
+    const withoutLogo = availableTeams.filter(t => t.id && !t.logo);
+    withoutLogo.slice(0, 20).forEach(t => loadTeamLogo(t.id!));
+  }, [activeSource, availableTeams, loadTeamLogo]);
 
   const handleExport = async () => {
     if (!previewRef.current) return;
@@ -277,11 +302,12 @@ const App: React.FC = () => {
                 availableTeams={teamsWithCachedLogos}
                 loadingTeams={loadingTeams}
                 activeSource={activeSource}
+                loadTeamLogo={loadTeamLogo}
               />
             </div>
           )}
 
-          <EditorPanel config={config} setConfig={setConfig} matches={matches} setMatches={setMatches} availableTeams={teamsWithCachedLogos} victoryPhoto={victoryPhoto} setVictoryPhoto={setVictoryPhoto} activeSource={activeSource} />
+          <EditorPanel config={config} setConfig={setConfig} matches={matches} setMatches={setMatches} availableTeams={teamsWithCachedLogos} victoryPhoto={victoryPhoto} setVictoryPhoto={setVictoryPhoto} activeSource={activeSource} loadTeamLogo={loadTeamLogo} />
           
           <button 
             disabled={isExporting} 

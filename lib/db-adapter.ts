@@ -28,11 +28,16 @@ export interface SettingsData {
 
 export type BackgroundImageType = 'results' | 'preview' | 'victory';
 
+export interface GetTeamsOptions {
+  noLogos?: boolean;
+}
+
 export interface DatabaseAdapter {
   source: DatabaseSource;
   
   // Équipes
-  getTeams(): Promise<TeamData[]>;
+  getTeams(options?: GetTeamsOptions): Promise<TeamData[]>;
+  getTeam(id: string): Promise<TeamData | null>;
   createTeam(team: Omit<TeamData, 'id'>): Promise<TeamData>;
   updateTeam(id: string, team: Partial<TeamData>): Promise<TeamData>;
   deleteTeam(id: string): Promise<void>;
@@ -62,7 +67,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
     if (!supabase) throw new Error('Supabase non configuré (variables d\'environnement manquantes)');
   }
 
-  async getTeams(): Promise<TeamData[]> {
+  async getTeams(_options?: GetTeamsOptions): Promise<TeamData[]> {
     this.guard();
     try {
       const { data, error } = await supabase!
@@ -84,6 +89,26 @@ export class SupabaseAdapter implements DatabaseAdapter {
     } catch (error: any) {
       console.error('[SUPABASE] Erreur lors de la récupération des équipes:', error);
       throw error;
+    }
+  }
+
+  async getTeam(id: string): Promise<TeamData | null> {
+    this.guard();
+    try {
+      const { data, error } = await supabase!
+        .from('teams')
+        .select('id, name, logo, is_local')
+        .eq('id', id)
+        .maybeSingle();
+      if (error || !data) return null;
+      return {
+        id: data.id?.toString(),
+        name: data.name,
+        logo: data.logo ?? '',
+        is_local: data.is_local || false
+      };
+    } catch {
+      return null;
     }
   }
 
@@ -314,14 +339,28 @@ export class AivenAdapter implements DatabaseAdapter {
     });
   }
 
-  async getTeams(): Promise<TeamData[]> {
-    const res = await this.api('/teams');
+  async getTeams(options?: GetTeamsOptions): Promise<TeamData[]> {
+    const path = options?.noLogos ? '/teams?no_logos=1' : '/teams';
+    const res = await this.api(path);
     if (!res.ok) {
       const err = await res.json().catch(() => ({})) as { error?: string; code?: string };
       throw { message: err.error || res.statusText, code: err.code || res.status };
     }
     const json = (await res.json()) as { data: TeamData[] };
     return (json.data || []).map(t => ({ id: t.id, name: t.name, logo: t.logo ?? '', is_local: Boolean(t.is_local) }));
+  }
+
+  async getTeam(id: string): Promise<TeamData | null> {
+    try {
+      const res = await this.api(`/teams/${id}`);
+      if (res.status === 404 || !res.ok) return null;
+      const json = (await res.json()) as { data?: TeamData };
+      const d = json.data;
+      if (!d) return null;
+      return { id: d.id, name: d.name, logo: d.logo ?? '', is_local: Boolean(d.is_local) };
+    } catch {
+      return null;
+    }
   }
 
   async createTeam(team: Omit<TeamData, 'id'>): Promise<TeamData> {
@@ -412,7 +451,7 @@ export class AivenAdapter implements DatabaseAdapter {
 
   async healthCheck(): Promise<boolean> {
     try {
-      const res = await this.api('/teams');
+      const res = await this.api('/health');
       return res.ok;
     } catch {
       return false;

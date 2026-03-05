@@ -22,9 +22,10 @@ interface AutocompleteProps {
   teams: TeamData[];
   onSelect: (team: TeamData) => void;
   align?: 'left' | 'right';
+  onNeedLogo?: (id: string) => void;
 }
 
-const AutocompleteTeamSelect: React.FC<AutocompleteProps> = ({ label, value, teams, onSelect, align = 'left' }) => {
+const AutocompleteTeamSelect: React.FC<AutocompleteProps> = ({ label, value, teams, onSelect, align = 'left', onNeedLogo }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,6 +40,12 @@ const AutocompleteTeamSelect: React.FC<AutocompleteProps> = ({ label, value, tea
 
   const sortedTeams = useMemo(() => [...teams].sort((a, b) => a.is_local ? -1 : b.is_local ? 1 : a.name.localeCompare(b.name)), [teams]);
   const filteredTeams = sortedTeams.filter(team => team.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  useEffect(() => {
+    if (isOpen && onNeedLogo) {
+      filteredTeams.filter(t => t.id && !t.logo).forEach(t => onNeedLogo(t.id!));
+    }
+  }, [isOpen, onNeedLogo, filteredTeams]);
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -65,8 +72,8 @@ const AutocompleteTeamSelect: React.FC<AutocompleteProps> = ({ label, value, tea
           <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
             {filteredTeams.length > 0 ? filteredTeams.map((team) => (
               <button key={team.id} onClick={() => { onSelect(team); setIsOpen(false); }} className="w-full flex items-center gap-4 p-4 hover:bg-orange-50 transition-colors text-left group">
-                <div className="w-14 h-14 shrink-0 relative">
-                  <img src={team.logo} alt="" className="w-full h-full object-contain" />
+                <div className="w-14 h-14 shrink-0 relative bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
+                  {team.logo ? <img src={team.logo} alt="" className="w-full h-full object-contain" /> : <span className="text-gray-400 text-xs font-black">…</span>}
                   {team.is_local && <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-600 border-2 border-white rounded-full"></div>}
                 </div>
                 <div className="flex flex-col overflow-hidden">
@@ -91,9 +98,10 @@ interface Props {
   victoryPhoto: string;
   setVictoryPhoto: (val: string) => void;
   activeSource: ConnectionSource;
+  loadTeamLogo?: (id: string) => void;
 }
 
-const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, availableTeams, victoryPhoto, setVictoryPhoto, activeSource }) => {
+const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, availableTeams, victoryPhoto, setVictoryPhoto, activeSource, loadTeamLogo }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -433,12 +441,12 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
                 <input type="text" value={match.league} onChange={(e) => updateMatch(match.id, { league: e.target.value.toUpperCase() })} className="w-full text-sm font-black uppercase text-gray-500 bg-gray-50 p-4.5 rounded-[20px] text-center outline-none" placeholder="DIVISION" />
                 <div className="grid grid-cols-[1fr_auto_1fr] gap-6 items-center">
                   <div className="flex flex-col gap-4">
-                    <AutocompleteTeamSelect label="DOMICILE..." value={match.team1.name} teams={availableTeams} onSelect={(t) => updateMatch(match.id, { team1: { name: t.name, logo: t.logo } })} />
+                    <AutocompleteTeamSelect label="DOMICILE..." value={match.team1.name} teams={availableTeams} onSelect={(t) => updateMatch(match.id, { team1: { name: t.name, logo: t.logo } })} onNeedLogo={loadTeamLogo} />
                     <input type="number" value={match.score1} onChange={(e) => updateMatch(match.id, { score1: parseInt(e.target.value) || 0 })} className="w-full font-black text-center text-4xl bg-gray-50 p-5 rounded-[24px] outline-none shadow-inner" />
                   </div>
                   <div className="text-gray-300 font-black text-base uppercase italic tracking-tighter">VS</div>
                   <div className="flex flex-col gap-4">
-                    <AutocompleteTeamSelect label="EXTÉRIEUR..." value={match.team2.name} teams={availableTeams} onSelect={(t) => updateMatch(match.id, { team2: { name: t.name, logo: t.logo } })} align="right" />
+                    <AutocompleteTeamSelect label="EXTÉRIEUR..." value={match.team2.name} teams={availableTeams} onSelect={(t) => updateMatch(match.id, { team2: { name: t.name, logo: t.logo } })} align="right" onNeedLogo={loadTeamLogo} />
                     <input type="number" value={match.score2} onChange={(e) => updateMatch(match.id, { score2: parseInt(e.target.value) || 0 })} className="w-full font-black text-center text-4xl bg-gray-50 p-5 rounded-[24px] outline-none shadow-inner" />
                   </div>
                 </div>
@@ -493,7 +501,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className="flex-1 min-w-0">
-                      <AutocompleteTeamSelect label="Équipe..." value={previewLeft[i]?.name ?? ''} teams={availableTeams} onSelect={(t) => setPreviewLeft(i, t)} />
+                      <AutocompleteTeamSelect label="Équipe..." value={previewLeft[i]?.name ?? ''} teams={availableTeams} onSelect={(t) => setPreviewLeft(i, t)} onNeedLogo={loadTeamLogo} />
                     </div>
                     {previewLeft[i] && (
                       <button type="button" onClick={() => setPreviewLeft(i, null)} className="shrink-0 w-10 h-10 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 flex items-center justify-center font-black" title="Retirer">×</button>
@@ -509,7 +517,7 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
                       <button type="button" onClick={() => setPreviewRight(i, null)} className="shrink-0 w-10 h-10 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 flex items-center justify-center font-black order-2" title="Retirer">×</button>
                     )}
                     <div className="flex-1 min-w-0 order-1">
-                      <AutocompleteTeamSelect label="Équipe..." value={previewRight[i]?.name ?? ''} teams={availableTeams} onSelect={(t) => setPreviewRight(i, t)} align="right" />
+                      <AutocompleteTeamSelect label="Équipe..." value={previewRight[i]?.name ?? ''} teams={availableTeams} onSelect={(t) => setPreviewRight(i, t)} align="right" onNeedLogo={loadTeamLogo} />
                     </div>
                   </div>
                 ))}
@@ -534,11 +542,11 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
           <div className="bg-white p-8 rounded-[48px] border border-gray-100 shadow-xl flex flex-col gap-8">
             <div className="grid grid-cols-2 gap-8">
               <div className="flex flex-col gap-4">
-                <AutocompleteTeamSelect label="DOM..." value={matches[0]?.team1.name || ''} teams={availableTeams} onSelect={(t) => updateMatch(matches[0]?.id, { team1: { name: t.name, logo: t.logo } })} />
+                <AutocompleteTeamSelect label="DOM..." value={matches[0]?.team1.name || ''} teams={availableTeams} onSelect={(t) => updateMatch(matches[0]?.id, { team1: { name: t.name, logo: t.logo } })} onNeedLogo={loadTeamLogo} />
                 <input type="number" value={matches[0]?.score1} onChange={(e) => updateMatch(matches[0]?.id, { score1: parseInt(e.target.value) || 0 })} className="w-full font-black text-center text-6xl bg-gray-50 p-8 rounded-[36px] outline-none shadow-inner" />
               </div>
               <div className="flex flex-col gap-4">
-                <AutocompleteTeamSelect label="EXT..." value={matches[0]?.team2.name || ''} teams={availableTeams} onSelect={(t) => updateMatch(matches[0]?.id, { team2: { name: t.name, logo: t.logo } })} align="right" />
+                <AutocompleteTeamSelect label="EXT..." value={matches[0]?.team2.name || ''} teams={availableTeams} onSelect={(t) => updateMatch(matches[0]?.id, { team2: { name: t.name, logo: t.logo } })} align="right" onNeedLogo={loadTeamLogo} />
                 <input type="number" value={matches[0]?.score2} onChange={(e) => updateMatch(matches[0]?.id, { score2: parseInt(e.target.value) || 0 })} className="w-full font-black text-center text-6xl bg-gray-50 p-8 rounded-[36px] outline-none shadow-inner" />
               </div>
             </div>

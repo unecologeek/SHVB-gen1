@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';
 import { DatabaseAdapter, TeamData, createDatabaseAdapter } from '../lib/db-adapter';
 import { ConnectionSource } from '../types';
@@ -17,9 +17,11 @@ interface Props {
   availableTeams: TeamData[];
   loadingTeams: boolean;
   activeSource: ConnectionSource;
+  /** Charge le logo d'une équipe à la demande (liste initiale sans logos). */
+  loadTeamLogo?: (id: string) => void;
 }
 
-const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, availableTeams, loadingTeams, activeSource }) => {
+const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, availableTeams, loadingTeams, activeSource, loadTeamLogo }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingTeams, setPendingTeams] = useState<PendingTeam[]>([]);
@@ -36,6 +38,12 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
       return a.name.localeCompare(b.name);
     });
   }, [availableTeams]);
+
+  useEffect(() => {
+    if (loadTeamLogo) {
+      sortedTeams.filter(t => t.id && !t.logo).forEach(t => loadTeamLogo(t.id!));
+    }
+  }, [loadTeamLogo, sortedTeams]);
 
   const handleFiles = async (files: FileList | File[] | null) => {
     if (!files?.length) return;
