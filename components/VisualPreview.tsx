@@ -118,7 +118,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
         </div>
 
         <div 
-          className="absolute top-[558px] left-1/2 -translate-x-1/2 w-[830px] h-[245px] bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] z-10 flex items-center justify-between px-16 border border-black/5"
+          className="absolute top-[558px] left-1/2 -translate-x-1/2 w-[830px] h-[245px] bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] z-10 flex items-center gap-8 px-16 border border-black/5"
           style={{ borderRadius: '25px' }}
         >
           <div className="flex-1 min-w-0 flex items-center justify-center gap-2 h-[200px]">
@@ -129,7 +129,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
             ))}
           </div>
 
-          <div className="flex flex-col items-center justify-center pt-2 shrink-0">
+          <div className="flex flex-col items-center justify-center pt-2 shrink-0 mx-2">
             <span 
               className="font-bebas text-[115px] text-[#2D1B0D] italic leading-none" 
               style={{ letterSpacing: '-0.08em', transform: 'scaleY(1.15) rotate(-2deg)' }}
