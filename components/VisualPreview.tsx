@@ -73,15 +73,8 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
       padding-top: 15px;
       letter-spacing: -0.05em;
     }
-    .logo-container-preview {
-      width: 220px;
-      height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .logo-img {
-      max-width: 195px;
+    .logo-img-preview {
+      max-width: 100%;
       max-height: 180px;
       object-fit: contain;
       image-rendering: -webkit-optimize-contrast;
@@ -90,6 +83,13 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
 
   if (config.visualType === 'preview') {
     const match = matches[0] || { team1: { name: '', logo: '' }, team2: { name: '', logo: '' } };
+    const hasLeft = config.previewLeftTeams?.some(t => t != null);
+    const hasRight = config.previewRightTeams?.some(t => t != null);
+    const rawLeft = hasLeft ? (config.previewLeftTeams ?? []) : (match ? [match.team1, null, null] : [null, null, null]);
+    const rawRight = hasRight ? (config.previewRightTeams ?? []) : (match ? [match.team2, null, null] : [null, null, null]);
+    const leftTeams: { name: string; logo: string }[] = rawLeft.slice(0, 3).filter((t): t is { name: string; logo: string } => t != null);
+    const rightTeams: { name: string; logo: string }[] = rawRight.slice(0, 3).filter((t): t is { name: string; logo: string } => t != null);
+
     return (
       <div 
         ref={ref}
@@ -121,11 +121,15 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           className="absolute top-[558px] left-1/2 -translate-x-1/2 w-[830px] h-[245px] bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] z-10 flex items-center justify-between px-16 border border-black/5"
           style={{ borderRadius: '25px' }}
         >
-          <div className="logo-container-preview">
-             <img src={match.team1.logo} alt="" className="logo-img" />
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-2 h-[200px]">
+            {leftTeams.map((team, i) => (
+              <div key={i} className="flex-1 min-w-0 h-full flex items-center justify-center">
+                {team.logo ? <img src={team.logo} alt="" className="logo-img-preview" onError={handleImageError} /> : null}
+              </div>
+            ))}
           </div>
-          
-          <div className="flex flex-col items-center justify-center pt-2">
+
+          <div className="flex flex-col items-center justify-center pt-2 shrink-0">
             <span 
               className="font-bebas text-[115px] text-[#2D1B0D] italic leading-none" 
               style={{ letterSpacing: '-0.08em', transform: 'scaleY(1.15) rotate(-2deg)' }}
@@ -134,8 +138,12 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
             </span>
           </div>
 
-          <div className="logo-container-preview">
-             <img src={match.team2.logo} alt="" className="logo-img" />
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-2 h-[200px]">
+            {rightTeams.map((team, i) => (
+              <div key={i} className="flex-1 min-w-0 h-full flex items-center justify-center">
+                {team.logo ? <img src={team.logo} alt="" className="logo-img-preview" onError={handleImageError} /> : null}
+              </div>
+            ))}
           </div>
         </div>
 

@@ -185,6 +185,8 @@ const App: React.FC = () => {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
+      await document.fonts.ready;
+      await document.fonts.load("115px 'Bebas Neue'");
       const dataUrl = await htmlToImage.toPng(previewRef.current, {
         quality: 1.0,
         pixelRatio: 2,

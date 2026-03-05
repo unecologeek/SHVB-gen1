@@ -461,7 +461,25 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
 
       {/* ... Le reste reste inchangé pour économiser du token, les changements sont focalisés sur la synchro ... */}
       
-      {config.visualType === 'preview' && (
+      {config.visualType === 'preview' && (() => {
+        const pad3 = <T,>(arr: (T | null)[]): (T | null)[] => { const a = [...arr].slice(0, 3); while (a.length < 3) a.push(null); return a; };
+        const previewLeft = pad3(config.previewLeftTeams ?? (matches[0] ? [matches[0].team1, null, null] : [null, null, null]));
+        const previewRight = pad3(config.previewRightTeams ?? (matches[0] ? [matches[0].team2, null, null] : [null, null, null]));
+        const setPreviewLeft = (index: number, team: { name: string; logo: string } | null) => {
+          const base = pad3(config.previewLeftTeams ?? (matches[0] ? [matches[0].team1, null, null] : [null, null, null]));
+          const next = [...base];
+          next[index] = team;
+          if (team === null) { const f = next.filter((_, j) => j !== index); handleConfigUpdate({ previewLeftTeams: pad3(f) }); }
+          else handleConfigUpdate({ previewLeftTeams: next });
+        };
+        const setPreviewRight = (index: number, team: { name: string; logo: string } | null) => {
+          const base = pad3(config.previewRightTeams ?? (matches[0] ? [matches[0].team2, null, null] : [null, null, null]));
+          const next = [...base];
+          next[index] = team;
+          if (team === null) { const f = next.filter((_, j) => j !== index); handleConfigUpdate({ previewRightTeams: pad3(f) }); }
+          else handleConfigUpdate({ previewRightTeams: next });
+        };
+        return (
         <section className="flex flex-col gap-8">
           <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-5">Configuration Affiche</h3>
           <div className="bg-white p-8 rounded-[48px] border border-gray-100 shadow-xl flex flex-col gap-8">
@@ -470,13 +488,31 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
               <input type="text" value={config.category} onChange={(e) => handleConfigUpdate({ category: e.target.value.toUpperCase() })} className="w-full bg-gray-50 rounded-[24px] p-5 text-sm font-black outline-none shadow-inner" />
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-black text-gray-400 uppercase ml-4 tracking-widest">Équipe 1</span>
-                <AutocompleteTeamSelect label="DOM..." value={matches[0]?.team1.name || ''} teams={availableTeams} onSelect={(t) => updateMatch(matches[0]?.id, { team1: { name: t.name, logo: t.logo } })} />
+              <div className="flex flex-col gap-4">
+                <span className="text-xs font-black text-gray-400 uppercase ml-4 tracking-widest">Gauche (VS) — jusqu’à 3 équipes</span>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <AutocompleteTeamSelect label="Équipe..." value={previewLeft[i]?.name ?? ''} teams={availableTeams} onSelect={(t) => setPreviewLeft(i, t)} />
+                    </div>
+                    {previewLeft[i] && (
+                      <button type="button" onClick={() => setPreviewLeft(i, null)} className="shrink-0 w-10 h-10 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 flex items-center justify-center font-black" title="Retirer">×</button>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-black text-gray-400 uppercase ml-4 tracking-widest text-right">Équipe 2</span>
-                <AutocompleteTeamSelect label="EXT..." value={matches[0]?.team2.name || ''} teams={availableTeams} onSelect={(t) => updateMatch(matches[0]?.id, { team2: { name: t.name, logo: t.logo } })} align="right" />
+              <div className="flex flex-col gap-4">
+                <span className="text-xs font-black text-gray-400 uppercase ml-4 tracking-widest text-right">Droite (VS) — jusqu’à 3 équipes</span>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    {previewRight[i] && (
+                      <button type="button" onClick={() => setPreviewRight(i, null)} className="shrink-0 w-10 h-10 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 flex items-center justify-center font-black order-2" title="Retirer">×</button>
+                    )}
+                    <div className="flex-1 min-w-0 order-1">
+                      <AutocompleteTeamSelect label="Équipe..." value={previewRight[i]?.name ?? ''} teams={availableTeams} onSelect={(t) => setPreviewRight(i, t)} align="right" />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -489,7 +525,8 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
             </div>
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {config.visualType === 'victory' && (
         <section className="flex flex-col gap-8">

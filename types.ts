@@ -40,6 +40,10 @@ export interface AppConfig {
   matchDate: string;
   location: string;
   previewBg: string;
+  /** Jusqu'à 3 équipes à gauche du "VS" (slots 0,1,2). null = slot vide. Si absent, dérivé de matches[0].team1 */
+  previewLeftTeams?: ({ name: string; logo: string } | null)[];
+  /** Jusqu'à 3 équipes à droite du "VS" (slots 0,1,2). null = slot vide. Si absent, dérivé de matches[0].team2 */
+  previewRightTeams?: ({ name: string; logo: string } | null)[];
   // Victory fields
   victoryBg: string;
   victoryPhotoFocus?: { x: number; y: number }; // Coordonnées en pourcentage (0-100)
