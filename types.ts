@@ -46,6 +46,7 @@ export interface AppConfig {
   previewRightTeams?: ({ name: string; logo: string } | null)[];
   // Victory fields
   victoryBg: string;
+  victoryBottomText?: string;
   victoryPhotoFocus?: { x: number; y: number }; // Coordonnées en pourcentage (0-100)
   // Common fields
   mainColor: string;

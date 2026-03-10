@@ -582,6 +582,16 @@ const EditorPanel: React.FC<Props> = ({ config, setConfig, matches, setMatches, 
                  </div>
                )}
             </div>
+            <div className="flex flex-col gap-3 pt-2">
+              <span className="text-xs font-black text-gray-400 uppercase ml-4 tracking-widest">Mention bas du visuel</span>
+              <input
+                type="text"
+                value={config.victoryBottomText || ''}
+                onChange={(e) => handleConfigUpdate({ victoryBottomText: e.target.value.toUpperCase() })}
+                className="w-full bg-gray-50 rounded-[24px] p-5 text-sm font-black outline-none shadow-inner"
+                placeholder="TQR M18 FÉMININE POULE D'OR"
+              />
+            </div>
           </div>
         </section>
       )}

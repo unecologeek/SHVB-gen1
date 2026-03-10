@@ -113,7 +113,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           style={{ borderRadius: '40px' }}
         >
           <span className="text-white text-[24px] font-ultra-black-normal uppercase tracking-[0.08em] break-words text-center">
-            {config.category || 'PRÉ NATIONALE MASCULINE'}
+            {config.victoryBottomText || config.category || 'TQR M18 FÉMININE POULE DOR}
           </span>
         </div>
 
@@ -215,7 +215,7 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
             style={{ borderRadius: '48px' }}
           >
             <span className="text-white text-[28px] font-heavy-bold uppercase tracking-[0.08em] whitespace-nowrap">
-              {config.category || 'PRÉ NATIONALE MASCULINE'}
+              {config.victoryBottomText || config.category || 'TQR M18 FEMININE POULE D'OR'}
             </span>
           </div>
         </div>
