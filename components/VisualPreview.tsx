@@ -163,6 +163,8 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
 
   if (config.visualType === 'victory') {
     const match = matches[0] || { team1: { name: '', logo: '' }, team2: { name: '', logo: '' }, score1: 3, score2: 0 };
+    const hasTwoDigitScore = String(match.score1).length > 1 || String(match.score2).length > 1;
+    const victoryScoreFontSize = hasTwoDigitScore ? '190px' : '230px';
     return (
       <div 
         ref={ref}
@@ -198,13 +200,13 @@ const VisualPreview = forwardRef<HTMLDivElement, Props>(({ config, matches, vict
           <div className="flex items-start gap-[60px] mb-[15px]">
             <div className="flex flex-col items-center">
               <div className="victory-score-box shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)]">
-                <span style={{ fontSize: String(match.score1).length > 1 ? '190px' : '230px' }}>{match.score1}</span>
+                <span style={{ fontSize: victoryScoreFontSize }}>{match.score1}</span>
               </div>
               <span className="text-white text-[38px] font-black uppercase mt-6 tracking-tight">{match.team1.name}</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="victory-score-box shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)]">
-                <span style={{ fontSize: String(match.score2).length > 1 ? '190px' : '230px' }}>{match.score2}</span>
+                <span style={{ fontSize: victoryScoreFontSize }}>{match.score2}</span>
               </div>
               <span className="text-white text-[38px] font-black uppercase mt-6 tracking-tight">{match.team2.name}</span>
             </div>
