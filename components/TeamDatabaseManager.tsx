@@ -1,7 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { validateAndLoadImage, showImageValidationError } from '../lib/image-validation';
 import { DatabaseAdapter, TeamData, createDatabaseAdapter } from '../lib/db-adapter';
-import { ConnectionSource } from '../types';
+import { AppConfig, ConnectionSource } from '../types';
+import {
+  dumpCurrentDatabase,
+  parseDumpFile,
+  validateDump,
+  importDumpToLocalCache,
+} from '../lib/database-dump';
+import { useLocalCache } from '../hooks/useLocalCache';
 
 interface PendingTeam {
   tempId: string;
@@ -19,15 +26,22 @@ interface Props {
   activeSource: ConnectionSource;
   /** Charge le logo d'une équipe à la demande (liste initiale sans logos). */
   loadTeamLogo?: (id: string) => void;
+  /** Configuration courante (utilisée pour l'export du cache et le merge à l'import). */
+  currentConfig: AppConfig;
+  /** Hook de cache local (lecture/écriture localStorage). */
+  localCache: ReturnType<typeof useLocalCache>;
 }
 
-const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, availableTeams, loadingTeams, activeSource, loadTeamLogo }) => {
+const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, availableTeams, loadingTeams, activeSource, loadTeamLogo, currentConfig, localCache }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dumpFileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingTeams, setPendingTeams] = useState<PendingTeam[]>([]);
   const [importing, setImporting] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  
+  const [isExportingDump, setIsExportingDump] = useState(false);
+  const [isImportingDump, setIsImportingDump] = useState(false);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<TeamData | null>(null);
 
@@ -257,6 +271,49 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
     }
   };
 
+  const handleExportDump = async () => {
+    if (isExportingDump) return;
+    setIsExportingDump(true);
+    try {
+      console.log(`📦 Export du dump (${activeSource})...`);
+      const dump = await dumpCurrentDatabase(activeSource, { config: currentConfig, cache: localCache });
+      console.log(`✅ Dump exporté (${dump.teams?.length ?? 0} clubs).`);
+    } catch (err: any) {
+      console.error('❌ Échec de l\'export du dump:', err);
+      alert(`Erreur lors de l'export : ${err.message || 'Erreur inconnue'}`);
+    } finally {
+      setIsExportingDump(false);
+    }
+  };
+
+  const handleImportDumpFile = async (file: File | null) => {
+    if (!file || isImportingDump) return;
+    if (!confirm("Importer ce dump ? L'index local du navigateur sera remplacé et la page sera rechargée.")) return;
+
+    setIsImportingDump(true);
+    try {
+      const raw = await parseDumpFile(file);
+      const validation = validateDump(raw);
+      if (validation.ok !== true) {
+        alert(`Fichier invalide : ${validation.error}`);
+        return;
+      }
+      const summary = importDumpToLocalCache(validation.dump, currentConfig, localCache);
+      const parts: string[] = [];
+      parts.push(`${summary.teamsCount} club(s)`);
+      if (summary.hasSettings) parts.push('paramètres');
+      if (summary.hasBackgrounds) parts.push('images de fond');
+      const degradedNote = summary.degraded ? '\n\n⚠️ Cache navigateur saturé : les images de fond ont été ignorées.' : '';
+      alert(`Import réussi : ${parts.join(', ')}.${degradedNote}\n\nLa page va être rechargée.`);
+      window.location.reload();
+    } catch (err: any) {
+      console.error('❌ Échec de l\'import du dump:', err);
+      alert(`Erreur lors de l'import : ${err.message || 'Erreur inconnue'}`);
+    } finally {
+      setIsImportingDump(false);
+    }
+  };
+
   return (
     <section className="bg-gray-900 text-white p-8 rounded-[48px] shadow-2xl overflow-hidden border border-white/5 border-l-[6px] border-l-orange-500 animate-in fade-in duration-500">
       <div className="flex flex-col gap-6">
@@ -436,6 +493,45 @@ const TeamDatabaseManager: React.FC<Props> = ({ onTeamsChange, onSetLocalTeam, a
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="pt-6 mt-2 border-t border-white/10 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.25em]">Sauvegarde locale</span>
+            <span className="text-[10px] text-gray-600 font-bold leading-snug">
+              Le fichier reste dans votre navigateur. Aucune donnée n'est envoyée au serveur.
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={handleExportDump}
+              disabled={isExportingDump || isImportingDump}
+              className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 active:scale-[0.98] disabled:bg-gray-900 disabled:opacity-60 text-xs font-black py-3.5 px-4 rounded-2xl uppercase transition-all shadow-lg border border-white/5"
+              title={`Exporter la source ${activeSource} en JSON`}
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span className="truncate">{isExportingDump ? 'Export...' : `Exporter (${activeSource})`}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => dumpFileInputRef.current?.click()}
+              disabled={isExportingDump || isImportingDump}
+              className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 active:scale-[0.98] disabled:bg-gray-900 disabled:opacity-60 text-xs font-black py-3.5 px-4 rounded-2xl uppercase transition-all shadow-lg border border-white/5"
+              title="Importer un dump JSON dans l'index local"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              <span className="truncate">{isImportingDump ? 'Import...' : 'Importer un dump'}</span>
+            </button>
+          </div>
+          <input
+            ref={dumpFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; handleImportDumpFile(f); }}
+            className="sr-only"
+            aria-hidden
+          />
         </div>
       </div>
     </section>

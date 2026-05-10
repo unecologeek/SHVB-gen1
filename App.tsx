@@ -303,6 +303,8 @@ const App: React.FC = () => {
                 loadingTeams={loadingTeams}
                 activeSource={activeSource}
                 loadTeamLogo={loadTeamLogo}
+                currentConfig={config}
+                localCache={cache}
               />
             </div>
           )}
